@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="icons/site.webmanifest">
 <meta name="theme-color" content="#95D6B3">
+<script>try { var t = localStorage.getItem("our-disney-trip-v1:theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <meta name="apple-mobile-web-app-title" content="Disney Trip">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
@@ -70,6 +71,8 @@ main { max-width: 760px; margin: 0 auto; padding-block: 18px calc(110px + env(sa
 .logo { height: 34px; width: auto; flex: none; }
 .brand b { font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.top-right { display: flex; align-items: center; gap: 10px; }
+.theme-btn { border: 2px solid var(--line); background: var(--surface); color: var(--ink); width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; padding: 0; }
 .sync { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 .sync::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
 .sync.local::before { background: var(--warn); }
@@ -232,6 +235,9 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .field.full { grid-column: 1 / -1; }
 .field label { font-size: .8rem; font-weight: 800; color: var(--muted); }
 .field input:not([type="checkbox"]), .field select, .field textarea { width: 100%; border: 2px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+/* iPhone Safari gives date boxes a fixed width and centered text unless their native look is turned off. */
+.field input[type="date"] { -webkit-appearance: none; appearance: none; display: block; max-width: 100%; min-height: 46px; text-align: left; }
+.field input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
 .field textarea { min-height: 90px; resize: vertical; }
 .field.cb { display: flex; align-items: center; gap: 10px; }
 .field.cb input { width: 22px; height: 22px; accent-color: var(--accent); }
@@ -362,6 +368,16 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   const art = (name, size) => `<img class="art" src="icons/parks/${name}.svg" alt=""${size ? ` width="${size}" height="${size}"` : ""}>`;
   const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Dates", art("globe-plane")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")], ["news", "News", art("tv-tower")]];
   const PARK_ART = { "Magic Kingdom": "castle", EPCOT: "spaceship-earth", "Hollywood Studios": "tower-of-terror", "Animal Kingdom": "tree-of-life", "Resort & food": "dole-whip", "Anything else": "sorcerer-hat" };
+
+  // Light/dark: follows the phone until someone taps the button, then remembers the choice on this device.
+  I.moon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1z"/></svg>';
+  const isDark = () => document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  function setTheme(t) {
+    document.documentElement.dataset.theme = t;
+    store.set(LS_KEY + ":theme", t);
+    const meta = document.querySelector("meta[name=theme-color]"); if (meta) meta.content = t === "dark" ? "#2A1C0F" : "#95D6B3";
+    render();
+  }
 
   // ---------- data layer ----------
   const chains = {};
@@ -602,7 +618,8 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       `<button data-act="tab" data-k="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${ic}<span>${label}</span></button>`).join("");
     const app = document.getElementById("app");
     const top = `<div class="topbar"><div class="brand"><img class="logo" src="icons/logo.png" alt="" width="51" height="34"><b>Trip Planner</b></div>
-      <span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span></div>`;
+      <div class="top-right"><span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span>
+      <button class="theme-btn" data-act="theme" aria-label="${isDark() ? "Switch to light mode" : "Switch to dark mode"}">${isDark() ? I.sun.replace(/14/g, "18") : I.moon}</button></div></div>`;
     const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, todo: todoView, news: newsView }[view.tab]();
     // Keep a half-typed pro/con when a live update re-renders the page.
     const typing = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.pcInput
@@ -1086,6 +1103,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     if (act === "sort") return;
     if (act === "tab") { view.tab = el.dataset.k; store.set(LS_KEY + ":tab", view.tab); render(); window.scrollTo({ top: 0 }); return; }
     if (act === "filter") { view.filter = el.dataset.k; render(); return; }
+    if (act === "theme") { setTheme(isDark() ? "light" : "dark"); return; }
     if (act === "cmp-filter") { view.cmpFilter = el.dataset.k; render(); return; }
     if (act === "cmp-focus") { view.cmpFocus = Number(el.dataset.i); render(); return; }
     if (act === "news-tag") { view.newsTag = el.dataset.k; render(); return; }
