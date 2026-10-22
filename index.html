@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="Disney Trip">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
-/* Layout: one phone-first column on a cream polka-dot ground, a mint ticket hero with a brown stub up top, tab bar pinned to the bottom.
+/* Layout: one phone-first column on a cream polka-dot ground (warm brown at night, the ticket stub color), a mint ticket hero with a brown stub up top, tab bar pinned to the bottom.
    Colors come from a vintage Disneyland ticket book: castle red, navy lettering, mint, brown stub, cream, orange, peach, yellow, sage. */
 :root {
   --bg: #FFF1CB; --dot: #F9E4B0; --surface: #FFFCF3; --surface-2: #FDF0D3; --line: #EBD7A6;
@@ -27,22 +27,22 @@
   --r: 18px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0D1C2E; --dot: #13263B; --surface: #14273C; --surface-2: #1C3249; --line: #2A4560;
-  --ink: #FFF1CB; --muted: #CBBF9F;
-  --accent: #FF9E44; --accent-soft: #3D2A16; --accent-ink: #FFC754; --on-accent: #0D1C2E;
-  --hero-a: #2B6653; --hero-b: #1F4E41; --on-hero: #FFF1CB; --hero-pill: rgba(13, 28, 46, .35); --stub: #B06A26;
-  --good: #8FDDB6; --good-soft: #173D2C; --warn: #FFC754; --warn-soft: #3D2E10; --bad: #FF8F70; --bad-soft: #4A2018;
-  --c-stay: #E8674A; --c-mugs: #5FBF95; --c-travel: #C98A4A;
+  --bg: #2A1C0F; --dot: #33230F; --surface: #3A2716; --surface-2: #47311C; --line: #5E4426;
+  --ink: #FFF1CB; --muted: #E6C9A8;
+  --accent: #FF9E44; --accent-soft: #5A3519; --accent-ink: #FFC754; --on-accent: #0D1C2E;
+  --on-hero: #0D1C2E; --hero-pill: rgba(255, 252, 243, .55);
+  --good: #C5D49F; --good-soft: #2F3A1E; --warn: #FFC754; --warn-soft: #4A3410; --bad: #FF9A7A; --bad-soft: #4E2216;
+  --c-stay: #E8674A; --c-travel: #C98A4A; --c-mugs: #5FBF95;
   --shadow: 0 6px 22px rgba(0, 0, 0, .35);
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
-  --bg: #0D1C2E; --dot: #13263B; --surface: #14273C; --surface-2: #1C3249; --line: #2A4560;
-  --ink: #FFF1CB; --muted: #CBBF9F;
-  --accent: #FF9E44; --accent-soft: #3D2A16; --accent-ink: #FFC754; --on-accent: #0D1C2E;
-  --hero-a: #2B6653; --hero-b: #1F4E41; --on-hero: #FFF1CB; --hero-pill: rgba(13, 28, 46, .35); --stub: #B06A26;
-  --good: #8FDDB6; --good-soft: #173D2C; --warn: #FFC754; --warn-soft: #3D2E10; --bad: #FF8F70; --bad-soft: #4A2018;
-  --c-stay: #E8674A; --c-mugs: #5FBF95; --c-travel: #C98A4A;
+  --bg: #2A1C0F; --dot: #33230F; --surface: #3A2716; --surface-2: #47311C; --line: #5E4426;
+  --ink: #FFF1CB; --muted: #E6C9A8;
+  --accent: #FF9E44; --accent-soft: #5A3519; --accent-ink: #FFC754; --on-accent: #0D1C2E;
+  --on-hero: #0D1C2E; --hero-pill: rgba(255, 252, 243, .55);
+  --good: #C5D49F; --good-soft: #2F3A1E; --warn: #FFC754; --warn-soft: #4A3410; --bad: #FF9A7A; --bad-soft: #4E2216;
+  --c-stay: #E8674A; --c-travel: #C98A4A; --c-mugs: #5FBF95;
   --shadow: 0 6px 22px rgba(0, 0, 0, .35);
   color-scheme: dark;
 }
@@ -141,7 +141,9 @@ main { max-width: 760px; margin: 0 auto; padding-block: 18px calc(110px + env(sa
 .price strong { font-family: var(--display); font-size: 1.6rem; font-weight: 600; display: block; line-height: 1; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .costbar { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
-.costbar span { display: block; height: 100%; background: var(--c-stay); border-radius: 999px; }
+.costbar span { display: block; height: 100%; border-radius: 999px; }
+.costbar.sm { height: 6px; }
+.stay-meter { display: grid; gap: 4px; }
 .note { white-space: pre-wrap; font-size: .95rem; }
 .quote { border-left: 4px solid var(--accent-soft); padding-left: 10px; }
 .picked-badge { background: var(--accent); color: var(--on-accent); }
@@ -174,8 +176,10 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .news { display: grid; gap: 6px; }
 .news a.t { color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.08rem; line-height: 1.25; }
 .news a.t:hover { color: var(--accent); }
-.tabs button svg { width: 24px; height: 24px; }
+.tabs button .art { width: 28px; height: 28px; object-fit: contain; opacity: .6; filter: saturate(.5); transition: opacity .15s, transform .15s; }
 .tabs button[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
+.tabs button[aria-current="page"] .art { opacity: 1; filter: none; transform: scale(1.08); }
+.park h3 .art, .insight .art { object-fit: contain; flex: none; }
 
 /* compare dates & weather */
 .dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -354,7 +358,10 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     sun: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   };
   I.news = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 17h3"/></svg>';
-  const TABS = [["home", "Home", I.home], ["resorts", "Resorts", I.bed], ["dates", "Dates", I.cal], ["budget", "Budget", I.wallet], ["dreams", "Dreams", I.star], ["todo", "To-do", I.list], ["news", "News", I.news]];
+  // Park illustrations from our own icon set (icons/parks/). Decorative, so alt is empty; the tab label says what it is.
+  const art = (name, size) => `<img class="art" src="icons/parks/${name}.svg" alt=""${size ? ` width="${size}" height="${size}"` : ""}>`;
+  const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Dates", art("globe-plane")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")], ["news", "News", art("tv-tower")]];
+  const PARK_ART = { "Magic Kingdom": "castle", EPCOT: "spaceship-earth", "Hollywood Studios": "tower-of-terror", "Animal Kingdom": "tree-of-life", "Resort & food": "dole-whip", "Anything else": "sorcerer-hat" };
 
   // ---------- data layer ----------
   const chains = {};
@@ -635,7 +642,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
         <div class="row between"><div><h3>${esc(pick.name)}</h3><div class="muted small">${esc(pick.room)} · ${nights(pick.start, pick.end)} nights</div></div>
         <div class="price"><strong class="num">${money(pick.total)}</strong><span class="muted small">${money(pick.total / (nights(pick.start, pick.end) || 1))}/night</span></div></div>
         ${pick.notes ? `<div class="note quote muted">${esc(pick.notes.split("\n")[0])}</div>` : ""}</div>`
-      : `<div class="card insight"><div class="ic">${I.bed}</div><div class="stack" style="gap:6px"><h3>No resort picked yet</h3>
+      : `<div class="card insight">${art("resort", 48)}<div class="stack" style="gap:6px"><h3>No resort picked yet</h3>
         <div class="muted small">Compare the options and tap “Make it our pick.” Its price fills in the stay line of the budget.</div>
         <div><button class="btn sm" data-act="tab" data-k="resorts">Compare resorts</button></div></div></div>`;
     const loves = entries("resorts").filter((r) => (r.hearts || []).length && !r.out).sort((a, b) => b.hearts.length - a.hearts.length).slice(0, 3);
@@ -658,14 +665,14 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
         ${leftHTML(t)}${meterHTML(t)}
       </section>
       ${pickHTML}
-      <section class="card insight"><div class="ic">${I.cal.replace("<svg", '<svg width="22" height="22"')}</div><div class="row between"><div><b>Earlier or later dates?</b><div class="muted small">See every resort's real points cost and the usual weather for any dates.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare dates</button></div></section>
+      <section class="card insight">${art("globe-plane", 48)}<div class="row between"><div><b>Earlier or later dates?</b><div class="muted small">See every resort's real points cost and the usual weather for any dates.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare dates</button></div></section>
       ${weatherCard(s.start, s.end, true)}
       ${loves.length ? `<section class="card stack"><span class="eyebrow">Hearted resorts</span>${loves.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b> <span class="muted small">${esc(span(r.start, r.end))}</span></div><span class="pill">${I.heart.replace("<svg", '<svg width="14" height="14"')} ${r.hearts.length}</span></div>`).join("")}</section>` : ""}
       <section class="card stack">
         <div class="row between"><h2>Coming up</h2><button class="btn quiet sm" data-act="tab" data-k="todo">All to-dos</button></div>
         ${todos.length ? todos.map((x) => { const r = relDays(x.d); return `<div class="row between"><div><b>${esc(x.text)}</b><div class="muted small">${fmt(x.d, { month: "long", day: "numeric", year: "numeric" })}</div></div><span class="pill ${r.cls}">${r.text}</span></div>`; }).join("") : `<div class="muted">Nothing dated coming up.</div>`}
       </section>
-      <section class="card row between"><div><span class="eyebrow">Dream list</span><div><b class="num">${wish.filter((w) => w.done).length}</b> of <b class="num">${wish.length}</b> done</div></div><button class="btn ghost sm" data-act="tab" data-k="dreams">${I.star.replace("<svg", '<svg width="18" height="18"')} Open</button></section>`;
+      <section class="card row between"><div><span class="eyebrow">Dream list</span><div><b class="num">${wish.filter((w) => w.done).length}</b> of <b class="num">${wish.length}</b> done</div></div><button class="btn ghost sm" data-act="tab" data-k="dreams">${art("sorcerer-hat", 20)} Open</button></section>`;
   }
 
   function resortsView() {
@@ -680,7 +687,6 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     if (f === "dates") list = list.filter((r) => r.start === s.start && r.end === s.end);
     const per = (r) => (Number(r.total) || 0) / (nights(r.start, r.end) || 1);
     list.sort(view.sort === "night" ? (a, b) => per(a) - per(b) : view.sort === "hearts" ? (a, b) => (b.hearts || []).length - (a.hearts || []).length || a.total - b.total : (a, b) => a.total - b.total);
-    const max = Math.max(1, ...entries("resorts").map((r) => Number(r.total) || 0));
 
     const all = entries("resorts").filter((r) => !r.out && r.total > 0);
     const cheapest = (sz) => all.filter((r) => r.size === sz).sort((a, b) => a.total - b.total)[0];
@@ -701,7 +707,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
           ${picked ? `<span class="pill picked-badge">Our pick</span> ` : ""}<h3 style="display:inline">${esc(r.name)}</h3>
           <div class="muted small">${esc(r.room)}${r.vibe ? " · " + esc(r.vibe) : ""}</div></div>
           <div class="price"><strong class="num">${money(r.total)}</strong><span class="muted small num">${money(per(r))}/night</span></div></div>
-        <div class="costbar" aria-hidden="true"><span style="width:${((Number(r.total) || 0) / max) * 100}%"></span></div>
+        ${stayMeter(Number(r.total) || 0, t.budget - t.other)}
         <div class="tags">
           <span class="pill ${diffDates ? "warn" : "plain"}">${esc(span(r.start, r.end))} · ${n} nights</span>
           <span class="pill plain">Sleeps ${esc(r.sleeps)}</span>
@@ -801,6 +807,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       const cells = x.per.map((p) => `<div class="optcell" style="--opt:${p.o.color}">
           <div class="row between"><b class="opt-tag sm">${p.o.k}</b>${x.per.length > 1 && p.total === min ? `<span class="pill good">Cheapest</span>` : ""}</div>
           <strong class="num">${money(p.total)}</strong>
+          ${stayMeter(p.total, t.budget - t.other, true)}
           <span class="muted small num">${p.pts} pts<span class="nn"> · ${p.o.n} nights</span>${p.missing ? ` (+${p.missing} uncharted)` : ""}</span>
           <span class="small" style="font-weight:800;color:var(--${p.left >= 0 ? "good" : "bad"})">${p.left >= 0 ? `${money(p.left)} under` : `${money(-p.left)} over`}</span>
           ${canWrite ? `<button class="btn quiet sm" data-act="cmp-save" data-rid="${esc(x.rid)}" data-room="${esc(x.room.id)}" data-i="${p.o.i}" aria-label="Add option ${p.o.k} for ${esc(x.r.name)} to Resorts">${I.plus} Add</button>` : ""}
@@ -828,6 +835,16 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       ${anyMissing ? `<div class="soft small">Some nights fall outside 2027. Only the 2027 points charts are out, so those nights aren't counted.</div>` : ""}
       ${cards || `<div class="card empty">Nothing matches this filter.</div>`}` : ""}
       <div class="src">Points: ${link(cal.url, cal.source)}. Each night is priced by its season and whether it's a Friday or Saturday night. Matches all 11 rental quotes we had (e.g. BoardWalk studio Sep 19 – Oct 1 = 126 pts). Chart PDFs: ${Object.values(charts()).map((r) => link(r.url, r.name)).join(", ")}. $ per point is from our rental quotes; tap to change it.</div>`;
+  }
+
+  // How much of the money left for a resort (budget minus every other cost) a stay uses.
+  // Green up to 80%, orange up to 100%, red once it goes over the budget.
+  function stayMeter(total, room, compact) {
+    const share = room > 0 ? total / room : Infinity;
+    const tone = share <= 0.8 ? "good" : share <= 1 ? "warn" : "bad";
+    const bar = `<div class="costbar${compact ? " sm" : ""}" role="img" aria-label="Uses ${isFinite(share) ? Math.round(share * 100) + "%" : "all"} of the money left for the stay"><span style="width:${Math.min(1, isFinite(share) ? share : 1) * 100}%;background:var(--${tone})"></span></div>`;
+    if (compact) return bar;
+    return `<div class="stay-meter"><div class="row between small"><span class="muted">Share of the ${money(Math.max(0, room))} left for a resort</span><b style="color:var(--${tone})">${isFinite(share) ? Math.round(share * 100) + "%" : "Over"}</b></div>${bar}</div>`;
   }
 
   function budgetView() {
@@ -894,11 +911,10 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   function dreamsView() {
     const all = entries("wishes");
     const parks = [...PARKS, ...new Set(all.map((w) => w.park).filter((p) => p && !PARKS.includes(p)))];
-    const sections = parks.map((p, idx) => {
+    const sections = parks.map((p) => {
       const rows = all.filter((w) => (w.park || "Anything else") === p).sort((a, b) => (a.done - b.done) || (b.hearts || []).length - (a.hearts || []).length);
       if (!rows.length) return "";
-      const color = Object.values(CATS)[(idx + 1) % 7].color;
-      return `<section class="card park"><h3><span class="dot" style="background:${color}"></span>${esc(p)}</h3><div class="list">${rows.map((w) => {
+      return `<section class="card park"><h3>${art(PARK_ART[p] || "sorcerer-hat", 32)}${esc(p)}</h3><div class="list">${rows.map((w) => {
         const mine = (w.hearts || []).includes(me);
         return `<div class="item ${w.done ? "done" : ""}">
           <button class="check ${w.done ? "on" : ""}" data-act="toggle" data-c="wishes" data-id="${w.id}" aria-pressed="${!!w.done}" aria-label="Mark done" ${canWrite ? "" : "disabled"}>${w.done ? I.tick : ""}</button>

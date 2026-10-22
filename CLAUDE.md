@@ -41,5 +41,5 @@ The first cloud session couldn't reach outside sites (Trusted network level). Us
 
 ## Conventions
 - Work on branch `claude/disney-vacation-planner-341o6o`.
-- Keep `index.html` single-file. Colors are tokens in `:root` with dark-mode overrides; keep the vintage Disneyland ticket-book palette (castle red #C9472D, navy #0D1C2E, mint #95D6B3, brown stub #905318, cream #FFF1CB, orange #FF9E44, peach #F4D0B3, yellow #FFC754, sage #C5D49F) and the Fredoka/Nunito fonts. The logo and icons are the Mickey-ears hat in `icons/`.
+- Keep `index.html` single-file. Colors are tokens in `:root` with dark-mode overrides; keep the vintage Disneyland ticket-book palette (castle red #C9472D, navy #0D1C2E, mint #95D6B3, brown stub #905318, cream #FFF1CB, orange #FF9E44, peach #F4D0B3, yellow #FFC754, sage #C5D49F) and the Fredoka/Nunito fonts. The logo and home-screen icons are the Mickey-ears hat in `icons/`. Tab and section art comes from the user's own park icon set (originals in C:\Users\dande\Downloads\Icons\<Park>\SVG, numbered files); the ones in use are copied to `icons/parks/` with readable names. Dark mode is warm brown (the ticket stub), not navy.
 - Never invent prices or weather numbers. If something can't be verified, mark it as an estimate.
