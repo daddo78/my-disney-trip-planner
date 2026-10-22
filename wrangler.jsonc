@@ -1,0 +1,17 @@
+// Cloudflare Worker for https://dtp.ondorilabo.com: the page (static asset) plus the shared-plan API and daily news (worker/index.js).
+// Deploy: CLOUDFLARE_API_TOKEN=$(cat ~/.bgc/cloudflare-token.txt) npx wrangler@4 deploy
+{
+  "name": "disney-trip-planner",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-19",
+  "account_id": "e2cdca3fde24196aa18b5f1ec321c887",
+  // The repo root is the asset folder, but .assetsignore lets only index.html through.
+  "assets": { "directory": ".", "binding": "ASSETS" },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "disney-trip-planner", "database_id": "74a3f270-e565-4280-8041-e675e7caed62", "migrations_dir": "worker/migrations" }
+  ],
+  // 11:15 UTC = 7:15 AM Eastern in summer (6:15 in winter)
+  "triggers": { "crons": ["15 11 * * *"] },
+  "routes": [{ "pattern": "dtp.ondorilabo.com", "custom_domain": true }],
+  "observability": { "enabled": true }
+}

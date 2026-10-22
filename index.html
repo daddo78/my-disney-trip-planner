@@ -1,7 +1,10 @@
-<title>Our Disney Trip</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Our Disney Trip</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
 /* Layout: one phone-first column on a blush polka-dot ground, a berry hero ticket up top, tab bar pinned to the bottom. */
@@ -165,10 +168,52 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--line);
   padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
   box-shadow: 0 -4px 18px rgba(158, 42, 98, .08); }
-.tabs nav { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-.tabs button { border: 0; background: transparent; color: var(--muted); display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 14px; font-size: .72rem; font-weight: 800; }
+.tabs nav { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+.tabs button { border: 0; background: transparent; color: var(--muted); display: grid; justify-items: center; gap: 2px; padding: 6px 0; border-radius: 14px; font-size: .64rem; font-weight: 800; white-space: nowrap; min-width: 0; }
+.news { display: grid; gap: 6px; }
+.news a.t { color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.08rem; line-height: 1.25; }
+.news a.t:hover { color: var(--pink); }
 .tabs button svg { width: 24px; height: 24px; }
 .tabs button[aria-current="page"] { color: var(--pink); background: var(--pink-soft); }
+
+/* compare dates & weather */
+.dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.optrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.opt { background: var(--surface); border-radius: var(--r); padding: 14px; box-shadow: var(--shadow); display: grid; gap: 10px; align-content: start; border-top: 6px solid var(--opt); min-width: 0; }
+.opt.empty { box-shadow: none; background: transparent; border: 2px dashed var(--line); border-top: 6px solid var(--line); justify-items: start; }
+.opt .dates { grid-template-columns: 1fr 72px; gap: 8px; }
+.opt .dates input { padding-inline: 8px !important; }
+.opt-tag { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--opt); color: #fff; font-family: var(--display); font-weight: 600; }
+.opt-tag.sm { width: 22px; height: 22px; font-size: .8rem; }
+.optgrid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 8px; }
+.optcell { background: var(--surface-2); border-radius: 14px; padding: 10px; display: grid; gap: 2px; align-content: start; border-top: 4px solid var(--opt); min-width: 0; }
+.optcell strong { font-family: var(--display); font-size: 1.25rem; font-weight: 600; }
+.optcell .btn { justify-self: start; padding: 4px 0; font-size: .78rem; }
+@media (max-width: 480px) { .optgrid { gap: 6px; } .optcell { padding: 8px 6px; } .optcell strong { font-size: 1.05rem; } .optcell .nn { display: none; } .optcell .pill { padding: 2px 6px; font-size: .68rem; } }
+.src { font-size: .78rem; color: var(--muted); }
+.src a { color: inherit; }
+.ppp { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; color: var(--muted); font-weight: 700; }
+.ppp input { width: 64px; border: 2px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 4px 6px; font-weight: 800; color: var(--ink); }
+.cmp .price span { display: block; }
+.daydots { display: flex; flex-wrap: wrap; gap: 4px; }
+.daydots i { width: 14px; height: 14px; border-radius: 50%; }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pc-col { background: var(--surface-2); border-radius: 14px; padding: 10px 12px; min-width: 0; border-top: 4px solid var(--good); }
+.pc-col.bad { border-top-color: var(--bad); }
+.pc-col ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; }
+.pc-col li { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; font-size: .92rem; font-weight: 600; overflow-wrap: anywhere; }
+.pc-col li::before { content: "+"; font-weight: 800; color: var(--good); }
+.pc-col.bad li::before { content: "−"; color: var(--bad); }
+.pc-col li > span { flex: 1; min-width: 0; }
+.x { border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; line-height: 1; padding: 0 4px; }
+.pc-add { display: flex; gap: 6px; flex-wrap: wrap; }
+.pc-add input { flex: 1 1 160px; min-width: 0; border: 2px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 6px 12px; }
+@media (max-width: 420px) { .pc { grid-template-columns: 1fr; } }
+.wxstrip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.wxday { flex: none; width: 46px; display: grid; justify-items: center; gap: 2px; font-size: .72rem; background: var(--surface-2); border-radius: 12px; padding: 6px 2px; }
+.wxday b { font-family: var(--display); font-size: .95rem; font-weight: 600; }
+.wxday .rain { width: 12px; height: 40px; border-radius: 6px; background: var(--surface); display: flex; align-items: flex-end; overflow: hidden; }
+.wxday .rain i { display: block; width: 100%; background: var(--c-fun); border-radius: 6px; }
 
 /* sheet */
 .scrim { position: fixed; inset: 0; z-index: 40; background: rgba(40, 10, 30, .45); display: grid; align-items: end; justify-items: center; }
@@ -191,6 +236,8 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 @media (max-width: 480px) { .fields { grid-template-columns: 1fr; } .big3 { gap: 6px; } .card { padding: 16px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
+</head>
+<body>
 
 <main id="app" aria-live="polite"></main>
 <div class="tabs"><nav id="tabs" aria-label="Sections"></nav></div>
@@ -200,7 +247,8 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 <script>
 (() => {
   const DAY = 864e5;
-  const DEFAULTS = { budget: 15000, start: "2027-09-22", end: "2027-10-05", adults: 2, kids: 3, pickId: "" };
+  // tixAdults/tixKids are ticket price groups, not people: Disney charges adult prices from age 10.
+  const DEFAULTS = { budget: 15000, start: "2027-09-22", end: "2027-10-05", adults: 2, kids: 3, pickId: "", tixDays: 5, tixAdults: 4, tixKids: 1 };
   const CATS = {
     stay: { label: "Resort stay", color: "var(--c-stay)" },
     tickets: { label: "Park tickets", color: "var(--c-tickets)" },
@@ -214,7 +262,12 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   const SIZES = ["Studio", "1 Bedroom", "2 Bedroom", "Hotel room"];
   const KITCHENS = ["Kitchenette", "Full kitchen", "No kitchen"];
   const SOURCES = ["DVC rental", "Disney direct", "Other"];
-  const COLLS = ["trip", "resorts", "budget", "wishes", "todos"];
+  const COLLS = ["trip", "resorts", "budget", "wishes", "todos", "dvc", "ref", "proscons", "news"];
+
+  // Built-in copy of the reference data. The shared db holds the live copy (dvc/<resort>, ref/seasons2027, ref/weather);
+  // this is only used when the page runs on its own or before the db has it.
+  // DVC: official 2027 points charts, pts = [sun–thu, fri–sat] per season, flattened. Weather: Open-Meteo 30-year history.
+  const REF = {"dvc":{"bwv":{"name":"BoardWalk Villas","ppp":26,"walk":true,"vibe":"A boardwalk to explore","url":"https://cdn1.parksmedia.wdprapps.disney.com/vision-dam/digital/parks-platform/parks-standard-assets/disney-vacation-club/points/2027_BWALK.pdf","rooms":[{"id":"st-r","label":"Deluxe Studio · Resort view","size":"Studio","sleeps":5,"kitchen":"Kitchenette","pts":[10,13,10,14,11,15,11,16,14,16,15,19,22,24]},{"id":"st-p","label":"Deluxe Studio · BoardWalk/Preferred view","size":"Studio","sleeps":5,"kitchen":"Kitchenette","pts":[14,16,15,16,16,17,16,18,18,20,19,22,28,29]},{"id":"1b-r","label":"One-Bedroom · Resort view","size":"1 Bedroom","sleeps":4,"kitchen":"Full kitchen","pts":[19,27,23,28,24,30,25,31,28,33,31,36,42,48]},{"id":"1b-p","label":"One-Bedroom · BoardWalk/Preferred view","size":"1 Bedroom","sleeps":4,"kitchen":"Full kitchen","pts":[26,29,29,34,32,37,35,39,35,41,39,43,50,56]}]},"bcv":{"name":"Beach Club Villas","ppp":29,"walk":true,"vibe":"Florida beach","url":"https://cdn1.parksmedia.wdprapps.disney.com/vision-dam/digital/parks-platform/parks-standard-assets/disney-vacation-club/points/2027_BCV.pdf","rooms":[{"id":"st","label":"Deluxe Studio","size":"Studio","sleeps":5,"kitchen":"Kitchenette","pts":[14,15,15,16,16,17,16,18,17,21,18,22,27,28]},{"id":"1b","label":"One-Bedroom","size":"1 Bedroom","sleeps":4,"kitchen":"Full kitchen","pts":[26,31,29,33,31,36,35,38,36,39,37,42,51,56]}]},"okw":{"name":"Old Key West","ppp":22,"walk":false,"vibe":"Key West, feels like home","url":"https://cdn1.parksmedia.wdprapps.disney.com/vision-dam/digital/parks-platform/parks-standard-assets/disney-vacation-club/points/2027_CLUB-OKW.pdf","rooms":[{"id":"st","label":"Deluxe Studio","size":"Studio","sleeps":4,"kitchen":"Kitchenette","pts":[9,13,10,14,10,15,11,16,13,17,15,19,22,26]},{"id":"1b","label":"One-Bedroom","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[20,25,23,26,25,28,26,30,28,34,31,36,40,50]}]},"rr":{"name":"Riviera Resort","ppp":24,"walk":false,"vibe":"Italy","url":"https://cdn1.parksmedia.wdprapps.disney.com/vision-dam/digital/parks-platform/parks-standard-assets/disney-vacation-club/points/2027_RVA.pdf","rooms":[{"id":"st-r","label":"Deluxe Studio · Resort view","size":"Studio","sleeps":5,"kitchen":"Kitchenette","pts":[14,17,16,18,17,19,17,20,19,22,21,25,29,32]},{"id":"st-p","label":"Deluxe Studio · Preferred view","size":"Studio","sleeps":5,"kitchen":"Kitchenette","pts":[17,22,19,24,20,26,21,26,24,28,27,30,35,40]},{"id":"1b-r","label":"One-Bedroom · Resort view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[29,34,34,39,35,42,36,48,39,50,43,53,58,68]},{"id":"1b-p","label":"One-Bedroom · Preferred view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[36,46,41,50,44,54,48,58,49,59,53,63,68,81]}]},"vgf":{"name":"Villas at Grand Floridian","ppp":26,"walk":false,"vibe":"Victorian elegance","url":"https://cdn1.parksmedia.wdprapps.disney.com/vision-dam/digital/parks-platform/parks-standard-assets/disney-vacation-club/points/2027_VGF.pdf","rooms":[{"id":"st-r","label":"Resort Studio · Resort view","size":"Studio","sleeps":5,"kitchen":"Kitchenette","pts":[16,20,17,20,18,21,18,21,22,24,24,26,32,37]},{"id":"st-p","label":"Resort Studio · Preferred view","size":"Studio","sleeps":5,"kitchen":"Kitchenette","pts":[19,24,21,24,21,26,22,27,26,29,27,32,38,44]},{"id":"1b-r","label":"One-Bedroom · Resort view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[31,41,36,44,38,46,41,48,43,51,46,55,64,75]},{"id":"1b-p","label":"One-Bedroom · Preferred view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[39,48,43,51,46,55,49,57,53,61,55,66,76,89]}]},"pvb":{"name":"Polynesian Villas & Bungalows","ppp":29,"walk":false,"vibe":"Hawaii","url":"https://cdn1.parksmedia.wdprapps.disney.com/vision-dam/digital/parks-platform/parks-standard-assets/disney-vacation-club/points/2027_POLYV.pdf","rooms":[{"id":"st-r","label":"Deluxe Studio · Resort view","size":"Studio","sleeps":5,"kitchen":"Kitchenette","pts":[15,18,17,20,19,22,20,23,22,25,25,28,34,36]},{"id":"st-p","label":"Deluxe Studio · Preferred view","size":"Studio","sleeps":5,"kitchen":"Kitchenette","pts":[20,24,22,24,22,26,24,27,25,30,28,32,41,43]},{"id":"1b-r","label":"Island Tower One-Bedroom · Resort view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[30,36,34,40,38,44,40,46,44,50,48,56,68,78]},{"id":"1b-p","label":"Island Tower One-Bedroom · Preferred view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[39,47,42,48,47,52,48,54,53,60,54,64,78,86]}]},"cfw":{"name":"Cabins at Fort Wilderness","ppp":29,"walk":false,"vibe":"Woodsy cabin","url":"https://cdn1.parksmedia.wdprapps.disney.com/vision-dam/digital/parks-platform/parks-standard-assets/disney-vacation-club/points/2027_CFW.pdf","rooms":[{"id":"cabin","label":"Cabin","size":"1 Bedroom","sleeps":6,"kitchen":"Full kitchen","pts":[15,18,16,19,18,21,20,24,22,25,24,28,32,36]}]},"akv":{"name":"Animal Kingdom Villas","ppp":24,"walk":false,"vibe":"Safari","url":"https://cdn1.parksmedia.wdprapps.disney.com/vision-dam/digital/parks-platform/parks-standard-assets/disney-vacation-club/points/2027_AKV_AKV2.pdf","rooms":[{"id":"st-v","label":"Deluxe Studio · Value","size":"Studio","sleeps":4,"kitchen":"Kitchenette","pts":[8,11,9,12,9,13,10,13,11,14,13,16,17,19]},{"id":"st-r","label":"Deluxe Studio · Resort view","size":"Studio","sleeps":4,"kitchen":"Kitchenette","pts":[10,13,12,14,13,15,14,15,15,16,16,18,21,23]},{"id":"1b-v","label":"One-Bedroom · Value","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[19,23,21,23,23,24,23,25,25,27,26,29,34,39]},{"id":"1b-r","label":"One-Bedroom · Resort view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[20,25,24,28,26,29,27,30,29,32,32,35,38,45]},{"id":"1b-sv","label":"One-Bedroom · Savanna view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[26,30,30,33,32,35,33,35,34,39,37,41,45,51]}]},"blt":{"name":"Bay Lake Tower","ppp":24,"walk":false,"vibe":"Modern, next to Magic Kingdom","url":"https://cdn1.parksmedia.wdprapps.disney.com/vision-dam/digital/parks-platform/parks-standard-assets/disney-vacation-club/points/2027_BLT.pdf","rooms":[{"id":"st-r","label":"Deluxe Studio · Resort view","size":"Studio","sleeps":4,"kitchen":"Kitchenette","pts":[13,16,15,17,16,18,17,19,18,21,19,22,26,29]},{"id":"st-p","label":"Deluxe Studio · Preferred view","size":"Studio","sleeps":4,"kitchen":"Kitchenette","pts":[16,19,18,19,19,20,19,21,20,23,21,24,28,32]},{"id":"1b-r","label":"One-Bedroom · Resort view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[24,32,28,35,30,38,31,39,33,41,36,44,48,56]},{"id":"1b-p","label":"One-Bedroom · Preferred view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[29,36,33,38,35,41,36,44,38,47,42,48,53,62]},{"id":"1b-tp","label":"One-Bedroom · Theme Park view","size":"1 Bedroom","sleeps":5,"kitchen":"Full kitchen","pts":[35,44,39,46,41,50,45,53,47,56,49,59,64,75]}]}},"seasons":{"year":2027,"weekend":"Friday and Saturday nights","labels":["Sep 1–30","Jan · May 1–14","May 15–Jun 10 · Dec 1–23","Feb 1–15 · Jun 11–Aug 31","Oct 1–Nov 23 · Nov 27–30","Feb 16–Mar 20 · Mar 29–Apr 30 · Nov 24–26","Mar 21–28 · Dec 24–31"],"ranges":["09-01:09-30","01-01:01-31","05-01:05-14","05-15:06-10","12-01:12-23","02-01:02-15","06-11:08-31","10-01:11-23","11-27:11-30","02-16:03-20","03-29:04-30","11-24:11-26","03-21:03-28","12-24:12-31"],"rangeSeason":[0,1,1,2,2,3,3,4,4,5,5,5,6,6],"source":"Disney Vacation Club 2027 Vacation Points charts (official)","url":"https://dvcnews.com/dvc-program-menu/policies-a-procedures/dvc-policy-news/6311-disney-vacation-club-points-charts-released-for-2027"},"weather":{"place":"Walt Disney World (lat 28.37, lon -81.55)","years":"1996–2025","fields":["highF","lowF","rainPct","downpourPct","avgInches"],"rainDef":"a day with at least 0.1 in of rain","downpourDef":"a day with at least 0.5 in of rain","smoothing":"each day averages a 7-day window (±3 days) across 30 years","source":"Open-Meteo Historical Weather API (ERA5 reanalysis)","url":"https://open-meteo.com/en/docs/historical-weather-api","note":"Historical averages, not a forecast. Real forecasts only exist about 2 weeks out. The archive has no thunderstorm flag, so downpour days (½ in+) stand in for stormy days.","days":{"08-01":[89,75,65,19,0.28],"08-02":[89,75,65,19,0.28],"08-03":[89,75,66,18,0.27],"08-04":[89,75,64,18,0.27],"08-05":[89,75,64,17,0.27],"08-06":[89,75,64,12,0.25],"08-07":[89,75,60,10,0.23],"08-08":[89,76,60,8,0.21],"08-09":[89,76,60,8,0.21],"08-10":[89,76,60,10,0.23],"08-11":[89,75,60,9,0.23],"08-12":[89,75,61,8,0.21],"08-13":[89,75,60,8,0.21],"08-14":[89,75,61,8,0.21],"08-15":[89,75,61,8,0.21],"08-16":[89,75,61,8,0.2],"08-17":[89,75,63,7,0.19],"08-18":[89,75,64,10,0.21],"08-19":[89,75,61,12,0.22],"08-20":[89,75,63,13,0.23],"08-21":[89,75,62,14,0.24],"08-22":[88,75,59,15,0.24],"08-23":[88,75,58,16,0.24],"08-24":[88,75,56,18,0.25],"08-25":[88,75,55,15,0.24],"08-26":[88,75,54,15,0.24],"08-27":[88,75,53,16,0.24],"08-28":[88,75,54,16,0.23],"08-29":[88,75,57,16,0.24],"08-30":[88,75,56,16,0.24],"08-31":[88,75,55,15,0.23],"09-01":[88,75,55,15,0.23],"09-02":[88,75,57,16,0.26],"09-03":[87,75,57,15,0.25],"09-04":[87,74,56,16,0.25],"09-05":[87,74,57,16,0.26],"09-06":[87,74,58,17,0.27],"09-07":[87,74,60,17,0.29],"09-08":[87,74,60,19,0.29],"09-09":[86,74,59,16,0.25],"09-10":[86,74,55,15,0.24],"09-11":[86,74,54,14,0.24],"09-12":[86,74,51,13,0.23],"09-13":[86,74,49,11,0.21],"09-14":[86,74,47,12,0.2],"09-15":[86,74,45,11,0.19],"09-16":[86,73,44,13,0.21],"09-17":[86,73,46,14,0.22],"09-18":[86,73,45,14,0.2],"09-19":[86,73,45,13,0.2],"09-20":[86,73,43,12,0.2],"09-21":[86,73,40,10,0.18],"09-22":[86,73,40,9,0.17],"09-23":[86,73,40,8,0.19],"09-24":[86,73,39,7,0.18],"09-25":[86,73,38,7,0.2],"09-26":[85,73,38,9,0.22],"09-27":[85,73,36,9,0.23],"09-28":[85,72,37,8,0.22],"09-29":[85,72,33,9,0.22],"09-30":[85,72,30,7,0.18],"10-01":[84,71,28,6,0.16],"10-02":[84,71,27,6,0.14],"10-03":[84,71,26,7,0.13],"10-04":[84,71,27,8,0.13],"10-05":[84,71,27,10,0.15],"10-06":[83,71,28,11,0.16],"10-07":[83,71,27,12,0.16],"10-08":[83,71,25,11,0.16],"10-09":[83,70,23,10,0.14],"10-10":[83,70,21,8,0.12],"10-11":[83,70,19,6,0.1],"10-12":[83,69,18,4,0.08],"10-13":[83,69,16,3,0.07],"10-14":[83,68,15,2,0.06],"10-15":[82,68,17,2,0.07],"10-16":[82,67,17,2,0.07],"10-17":[82,67,15,2,0.07],"10-18":[81,66,14,3,0.07],"10-19":[81,66,13,2,0.07],"10-20":[81,66,13,3,0.06],"10-21":[81,66,13,4,0.07],"10-22":[81,66,14,4,0.07],"10-23":[81,66,13,4,0.06],"10-24":[81,66,15,4,0.07],"10-25":[81,65,17,5,0.07],"10-26":[80,65,17,6,0.08],"10-27":[80,65,17,5,0.07],"10-28":[80,64,16,3,0.06],"10-29":[80,64,14,4,0.07],"10-30":[80,64,17,5,0.08],"10-31":[79,64,14,4,0.07],"11-01":[79,64,13,4,0.07],"11-02":[79,64,15,4,0.08],"11-03":[79,64,16,5,0.09],"11-04":[78,63,15,5,0.09],"11-05":[78,63,15,4,0.07],"11-06":[78,63,13,4,0.07],"11-07":[78,63,15,5,0.09],"11-08":[78,62,15,5,0.08],"11-09":[78,62,12,5,0.07],"11-10":[78,62,12,4,0.07],"11-11":[78,62,12,4,0.07],"11-12":[77,62,12,5,0.07],"11-13":[77,61,11,5,0.08],"11-14":[77,61,10,5,0.08],"11-15":[76,60,9,4,0.07]}},"tickets":{"asOf":"2026-10-22","fromPerDay":{"2":130,"3":127,"4":124,"5":103,"6":90,"7":82,"8":75,"9":69,"10":64},"childRatio":0.964,"tax":0.065,"likely":0.05,"high":0.1,"how":"Starts from Disney's lowest per-day price for each ticket length (ages 10+, before tax). Child tickets (ages 3–9) run about 3.6% less, based on MouseSavers' adult and child price tables. Adds 6.5% Orlando sales tax. Likely adds 5% and high adds 10%, because start dates in late September have cost up to about 9% more than the cheapest September start (MouseSavers' 2026 example).","source":"Disney World ticket page (lowest per-day prices)","url":"https://disneyworld.disney.go.com/admission/tickets/theme-parks/","source2":"MouseSavers ticket price tables","url2":"https://www.mousesavers.com/regular-walt-disney-world-ticket-prices/"}};
 
   // Starter plan, used only when the page runs on its own (no shared storage).
   const STARTER = {
@@ -259,13 +312,15 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       t8: { text: "Pack for the heat: cooling towels, fans, sunscreen", months: null, days: 3, done: false, note: "" },
       t9: { text: "Buy refillable mugs at check-in", months: null, days: 0, done: false, note: "" },
     },
+    dvc: REF.dvc,
+    ref: { seasons2027: REF.seasons, weather: REF.weather, tickets: REF.tickets },
   };
 
-  const state = { trip: {}, resorts: {}, budget: {}, wishes: {}, todos: {} };
+  const state = { trip: {}, resorts: {}, budget: {}, wishes: {}, todos: {}, dvc: {}, ref: {}, proscons: {}, news: {} };
   let mode = "starting"; // "shared" | "local"
   let db = null, userCap = null, me = "me", canWrite = true;
   let names = {};
-  const view = { tab: "home", filter: "all", sort: "price" };
+  const view = { tab: "home", filter: "all", sort: "price", cmpOpts: null, cmpFocus: 0, cmpFilter: "five", newsTag: "all" };
   const LS_KEY = "our-disney-trip-v1";
 
   // ---------- helpers ----------
@@ -294,8 +349,11 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     pencil: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>',
     plus: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
     spark: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/></svg>',
+    cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M12 13.5l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z" fill="currentColor"/></svg>',
+    sun: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   };
-  const TABS = [["home", "Home", I.home], ["resorts", "Resorts", I.bed], ["budget", "Budget", I.wallet], ["dreams", "Dream list", I.star], ["todo", "To-do", I.list]];
+  I.news = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 17h3"/></svg>';
+  const TABS = [["home", "Home", I.home], ["resorts", "Resorts", I.bed], ["dates", "Dates", I.cal], ["budget", "Budget", I.wallet], ["dreams", "Dreams", I.star], ["todo", "To-do", I.list], ["news", "News", I.news]];
 
   // ---------- data layer ----------
   const chains = {};
@@ -331,7 +389,13 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   async function boot() {
     const tab = (location.hash || "").slice(1) || store.get(LS_KEY + ":tab");
     if (TABS.some((t) => t[0] === tab)) view.tab = tab;
-    if (!window.claude || !window.claude.use) return loadLocal();
+    if (!window.claude || !window.claude.use) {
+      const site = /^https?:$/.test(location.protocol) ? await siteDb() : null;
+      if (!site) return loadLocal();
+      db = site; mode = "shared";
+      pickMe();
+      return subscribe();
+    }
     render();
     const [d, u] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
     if (!d) return loadLocal();
@@ -340,6 +404,10 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       const id = await u.id(); if (id) me = id;
       const w = await u.can("data.write"); if (w === false) canWrite = false;
     }
+    subscribe();
+  }
+
+  function subscribe() {
     COLLS.forEach((c) => {
       db.collection(c).onSnapshot((snap) => {
         const m = {}; snap.docs.forEach((doc) => (m[doc.id] = doc.data()));
@@ -349,10 +417,60 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     render();
   }
 
+  // On dtp.ondorilabo.com the Worker keeps the shared plan (worker/index.js); this gives it the same
+  // interface as the artifact's db. It checks for changes every 5 seconds while the page is open.
+  async function siteDb() {
+    let first;
+    try { const r = await fetch("/api/docs?since=0", { cache: "no-store" }); if (!r.ok) return null; first = await r.json(); } catch { return null; }
+    const cache = {}, subs = {};
+    let cursor = 0, polling = false;
+    const snap = (c) => ({ docs: Object.entries(cache[c] || {}).map(([id, d]) => ({ id, data: () => d })) });
+    const emit = (c) => (subs[c] || []).forEach((cb) => cb(snap(c)));
+    const apply = (res) => {
+      const touched = new Set();
+      res.docs.forEach((d) => { const m = (cache[d.coll] = cache[d.coll] || {}); if (d.deleted) delete m[d.id]; else m[d.id] = d.data; touched.add(d.coll); });
+      cursor = Math.max(cursor, res.cursor || 0);
+      return touched;
+    };
+    apply(first);
+    async function poll() {
+      if (polling) return; polling = true;
+      try { const r = await fetch(`/api/docs?since=${cursor}`, { cache: "no-store" }); if (r.ok) apply(await r.json()).forEach(emit); } catch {} finally { polling = false; }
+    }
+    setInterval(() => { if (document.visibilityState === "visible") poll(); }, 5000);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") poll(); });
+    async function send(c, id, init, local) {
+      const m = (cache[c] = cache[c] || {}); if (local === undefined) delete m[id]; else m[id] = local;
+      const r = await fetch(`/api/docs/${encodeURIComponent(c)}/${encodeURIComponent(id)}`, init);
+      if (!r.ok) throw Object.assign(new Error("Save failed"), { code: r.status === 413 ? "quota_exceeded" : "unavailable" });
+      poll();
+    }
+    return {
+      collection: (c) => ({
+        onSnapshot(cb) { (subs[c] = subs[c] || []).push(cb); cb(snap(c)); },
+        doc: (id) => ({
+          set: (data) => send(c, id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(data) }, data),
+          delete: () => send(c, id, { method: "DELETE" }),
+        }),
+      }),
+    };
+  }
+
+  // The website has no sign-in, so each phone says once who is using it (for hearts and pros & cons).
+  const PEOPLE = { dan: "Dan", brittany: "Brittany" };
+  function pickMe() {
+    const saved = store.get(LS_KEY + ":me");
+    names = { ...PEOPLE };
+    if (saved && PEOPLE[saved]) { me = saved; names[me] = "You"; return; }
+    openSheet("Who's planning on this phone?", [{ k: "who", label: "This is", type: "select", options: Object.entries(PEOPLE), full: true }], { who: "brittany" },
+      (v) => { me = v.who; store.set(LS_KEY + ":me", me); names = { ...PEOPLE, [me]: "You" }; render(); });
+  }
+
   async function resolveNames() {
     if (!userCap) return;
     const ids = new Set();
     ["resorts", "wishes"].forEach((c) => entries(c).forEach((r) => (r.hearts || []).forEach((h) => ids.add(h))));
+    entries("proscons").forEach((p) => [...(p.pros || []), ...(p.cons || [])].forEach((x) => x.by && ids.add(x.by)));
     ids.add(me);
     const missing = [...ids].filter((i) => !(i in names));
     if (!missing.length) return;
@@ -395,6 +513,81 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     return { text: `In ${n} days`, cls: "plain" };
   }
 
+  // ---------- DVC points & weather ----------
+  const charts = () => ({ ...REF.dvc, ...state.dvc });
+  const seasonCal = () => state.ref.seasons2027 || REF.seasons;
+  const weather = () => state.ref.weather || REF.weather;
+  const md = (d) => isoD(d).slice(5);
+  function eachNight(a, b, fn) { const x = parseD(a), y = parseD(b); if (!x || !y) return; for (let d = new Date(x); d < y; d.setDate(d.getDate() + 1)) fn(new Date(d)); }
+  function seasonIdx(d) {
+    const cal = seasonCal(); if (d.getFullYear() !== cal.year) return -1;
+    const m = md(d), i = cal.ranges.findIndex((r) => { const [a, b] = r.split(":"); return m >= a && m <= b; });
+    return i < 0 ? -1 : cal.rangeSeason[i];
+  }
+  // Points for a stay: each night is priced by its season and whether it's a Fri/Sat night.
+  function stayPoints(room, a, b) {
+    let pts = 0, missing = 0;
+    eachNight(a, b, (d) => { const s = seasonIdx(d); if (s < 0) { missing++; return; } const we = d.getDay() === 5 || d.getDay() === 6; pts += Number(room.pts[s * 2 + (we ? 1 : 0)]) || 0; });
+    return { pts, missing };
+  }
+  function nightMix(a, b) {
+    let we = 0, all = 0; const seasons = new Set();
+    eachNight(a, b, (d) => { all++; if (d.getDay() === 5 || d.getDay() === 6) we++; const s = seasonIdx(d); if (s >= 0) seasons.add(s); });
+    return { all, we, wk: all - we, seasons: [...seasons] };
+  }
+  function weatherFor(a, b) {
+    const w = weather(), days = [];
+    // Weather covers the days you're there, check-in through check-out.
+    const x = parseD(a), y = parseD(b); if (!x || !y || y <= x) return null;
+    for (let d = new Date(x); d <= y; d.setDate(d.getDate() + 1)) { const v = w.days[md(d)]; days.push({ d: new Date(d), v }); }
+    const known = days.filter((x) => x.v);
+    if (!known.length) return { days, known };
+    const col = (i) => known.map((x) => x.v[i]);
+    const sum = (arr) => arr.reduce((s, v) => s + v, 0);
+    return { days, known, hiMin: Math.min(...col(0)), hiMax: Math.max(...col(0)), loMin: Math.min(...col(1)), loMax: Math.max(...col(1)),
+      rainAvg: Math.round(sum(col(2)) / known.length), rainDays: sum(col(2)) / 100, pourDays: sum(col(3)) / 100, inches: sum(col(4)) };
+  }
+  // Pros & cons belong to the resort, not one date option, so every BoardWalk option shares one list.
+  const pcKey = (name) => String(name || "").split(",")[0].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "resort";
+  const pcFor = (name) => state.proscons[pcKey(name)] || { pros: [], cons: [] };
+  function pcCount(name) { const p = pcFor(name), a = (p.pros || []).length, b = (p.cons || []).length; return a || b ? `<span class="pill plain">+${a} / −${b}</span>` : ""; }
+  function prosConsHTML(name) {
+    const p = pcFor(name), key = pcKey(name);
+    const li = (kind, x) => `<li><span>${esc(x.text)}${x.by && names[x.by] ? ` <span class="muted small">· ${esc(names[x.by])}</span>` : ""}</span>${canWrite ? `<button type="button" class="x" data-act="pc-del" data-key="${esc(key)}" data-kind="${kind}" data-id="${esc(x.id)}" aria-label="Remove">×</button>` : ""}</li>`;
+    const col = (kind, title, cls) => { const items = p[kind] || []; return `<div class="pc-col ${cls}"><div class="eyebrow">${title}</div>${items.length ? `<ul>${items.map((x) => li(kind, x)).join("")}</ul>` : `<div class="muted small">None yet</div>`}</div>`; };
+    return `<div class="pc">${col("pros", "Pros", "good")}${col("cons", "Cons", "bad")}</div>
+      ${canWrite ? `<div class="pc-add"><input type="text" maxlength="140" placeholder="Add a pro or con…" aria-label="Pro or con for ${esc(name)}" data-pc-input="${esc(key)}">
+        <button type="button" class="btn sm" data-act="pc-add" data-key="${esc(key)}" data-name="${esc(name)}" data-kind="pros">+ Pro</button>
+        <button type="button" class="btn ghost sm" data-act="pc-add" data-key="${esc(key)}" data-name="${esc(name)}" data-kind="cons">− Con</button></div>` : ""}`;
+  }
+
+  // Ticket estimate: Disney's lowest per-day price × days, child discount, tax, then a cushion for pricier start dates.
+  const ticketRef = () => state.ref.tickets || REF.tickets;
+  function ticketEstimate(days, ad, ch) {
+    const T = ticketRef(), per = Number(T.fromPerDay[days]); if (!per) return null;
+    const adult = per * days, child = adult * T.childRatio;
+    const base = (adult * ad + child * ch) * (1 + T.tax);
+    return { adult, child, low: base, mid: base * (1 + T.likely), high: base * (1 + T.high) };
+  }
+  const link = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>`;
+  function weatherCard(a, b, compact) {
+    const r = weatherFor(a, b), w = weather();
+    if (!r) return "";
+    if (!r.known.length) return `<section class="card stack"><h3>Weather, usually</h3><div class="muted small">No weather history loaded for these dates (we have Aug 1 – Nov 15).</div></section>`;
+    const strip = r.days.map(({ d, v }) => v ? `<div class="wxday" title="${esc(fmt(d))}: high ${v[0]}°, low ${v[1]}°, ${v[2]}% chance of rain"><span class="muted">${esc(fmt(d, { weekday: "short" }))}</span><span>${d.getMonth() + 1}/${d.getDate()}</span><b>${v[0]}°</b><span class="muted">${v[1]}°</span><span class="rain" aria-hidden="true"><i style="height:${v[2]}%"></i></span><span class="num">${v[2]}%</span></div>` : "").join("");
+    const round1 = (n) => (n < 0.95 ? "under 1" : `about ${Math.round(n)}`);
+    return `<section class="card stack">
+      <div class="row between"><h3>Weather, usually</h3><span class="pill plain">${esc(w.years)} averages</span></div>
+      <div class="big3">
+        <div><span class="eyebrow">Highs</span><strong>${r.hiMin === r.hiMax ? r.hiMax : `${r.hiMin}–${r.hiMax}`}°</strong></div>
+        <div><span class="eyebrow">Lows</span><strong>${r.loMin === r.loMax ? r.loMax : `${r.loMin}–${r.loMax}`}°</strong></div>
+        <div><span class="eyebrow">Rain chance</span><strong>${r.rainAvg}%</strong></div></div>
+      <div class="soft small">Over these ${r.known.length} days, expect ${round1(r.rainDays)} rainy day${Math.round(r.rainDays) === 1 ? "" : "s"} and ${round1(r.pourDays)} downpour day${Math.round(r.pourDays) === 1 ? "" : "s"}. Florida rain usually means a short afternoon storm, not a washout.</div>
+      ${compact ? "" : `<div class="wxstrip" aria-label="Day by day">${strip}</div>
+      <div class="muted small">Rain chance = share of past years with ${esc(w.rainDef)}. Downpour = ${esc(w.downpourDef)}. ${esc(w.note)}</div>`}
+      <div class="src">Source: ${link(w.url, w.source)}, ${esc(w.place)}, ${esc(w.years)}. Smoothed: ${esc(w.smoothing)}.</div></section>`;
+  }
+
   // ---------- render ----------
   function render() {
     document.getElementById("tabs").innerHTML = TABS.map(([k, label, ic]) =>
@@ -402,8 +595,12 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     const app = document.getElementById("app");
     const top = `<div class="topbar"><div class="brand"><div class="ears" aria-hidden="true"><i></i><i></i><i></i><span class="bow"></span></div><b>Trip Planner</b></div>
       <span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span></div>`;
-    const body = { home: homeView, resorts: resortsView, budget: budgetView, dreams: dreamsView, todo: todoView }[view.tab]();
+    const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, todo: todoView, news: newsView }[view.tab]();
+    // Keep a half-typed pro/con when a live update re-renders the page.
+    const typing = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.pcInput
+      ? { key: document.activeElement.dataset.pcInput, value: document.activeElement.value } : null;
     app.innerHTML = top + body;
+    if (typing && typing.value) { const el = app.querySelector(`[data-pc-input="${typing.key}"]`); if (el) { el.value = typing.value; el.focus(); } }
   }
 
   function meterHTML(t) {
@@ -443,6 +640,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     const loves = entries("resorts").filter((r) => (r.hearts || []).length && !r.out).sort((a, b) => b.hearts.length - a.hearts.length).slice(0, 3);
     const todos = entries("todos").filter((x) => !x.done).map((x) => ({ ...x, d: dueDate(x) })).filter((x) => x.d && x.d >= today()).sort((a, b) => a.d - b.d).slice(0, 3);
     const wish = entries("wishes");
+    const wx = weatherFor(s.start, s.end);
     return `
       <section class="hero">
         <svg class="sparkle" style="right:18%;top:22px" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/></svg>
@@ -451,7 +649,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
         <div class="eyebrow">Walt Disney World · ${start ? start.getFullYear() : ""}</div>
         <h1>Our Disney Trip</h1>
         <div class="count">${count}</div>
-        <div class="meta"><span class="pill">${esc(span(s.start, s.end))}</span><span class="pill">${n} nights</span><span class="pill">${s.adults} adults · ${s.kids} kids</span></div>
+        <div class="meta"><span class="pill">${esc(span(s.start, s.end))}</span><span class="pill">${n} nights</span><span class="pill">${s.adults} adults · ${s.kids} kids</span>${wx && wx.known.length ? `<span class="pill">${I.sun} Usually ${wx.hiMax}° / ${wx.loMin}°</span>` : ""}</div>
         <div class="perf"></div>
       </section>
       <section class="card stack">
@@ -459,6 +657,8 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
         ${leftHTML(t)}${meterHTML(t)}
       </section>
       ${pickHTML}
+      <section class="card insight"><div class="ic">${I.cal.replace("<svg", '<svg width="22" height="22"')}</div><div class="row between"><div><b>Earlier or later dates?</b><div class="muted small">See every resort's real points cost and the usual weather for any dates.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare dates</button></div></section>
+      ${weatherCard(s.start, s.end, true)}
       ${loves.length ? `<section class="card stack"><span class="eyebrow">Hearted resorts</span>${loves.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b> <span class="muted small">${esc(span(r.start, r.end))}</span></div><span class="pill">${I.heart.replace("<svg", '<svg width="14" height="14"')} ${r.hearts.length}</span></div>`).join("")}</section>` : ""}
       <section class="card stack">
         <div class="row between"><h2>Coming up</h2><button class="btn quiet sm" data-act="tab" data-k="todo">All to-dos</button></div>
@@ -511,6 +711,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
           <span class="pill plain">${esc(r.source)}</span>
         </div>
         ${r.notes ? `<div class="note quote">${esc(r.notes)}</div>` : ""}
+        ${prosConsHTML(r.name)}
         <div class="soft small">With everything else in the budget, this ${after >= 0 ? `leaves <b style="color:var(--good)">${money(after)}</b> to spare` : `goes <b style="color:var(--bad)">${money(-after)} over</b>`}.</div>
         <div class="row between">
           <div class="row">
@@ -533,7 +734,99 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       <div class="toolbar" role="group" aria-label="Filter resorts">${chip("all", "All")}${chip("studio", "5th-sleeper studios")}${chip("1br", "1 bedrooms")}${chip("walk", "Walk to parks")}${chip("hearts", "Hearted")}${chip("dates", "Our dates")}</div>
       <div class="row between"><span class="muted small">${list.length} option${list.length === 1 ? "" : "s"} for ${s.adults + s.kids} people</span>${sortSel}</div>
       ${cards}${empty}
+      <div class="src">Prices: our DVC rental quotes. Points checked against the ${link(seasonCal().url, "official 2027 DVC points charts")}. To price other dates, use the ${`<a href="#dates">Dates tab</a>`}.</div>
       ${out.length ? `<details class="card"><summary>Ruled out (${out.length})</summary><div class="stack" style="margin-top:12px">${out.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b><div class="muted small note">${esc(r.notes)}</div></div>${canWrite ? `<button class="icon-btn" data-act="edit-resort" data-id="${r.id}" aria-label="Edit ${esc(r.name)}">${I.pencil}</button>` : ""}</div>`).join("")}</div></details>` : ""}`;
+  }
+
+  // Up to three date options, compared side by side. Saved in trip/compare so we both see the same options.
+  const OPT = [{ k: "A", color: "var(--pink)" }, { k: "B", color: "var(--c-tickets)" }, { k: "C", color: "var(--c-mugs)" }];
+  const addDays = (iso, k) => { const d = parseD(iso); if (!d) return ""; d.setDate(d.getDate() + k); return isoD(d); };
+  function cmpOpts() {
+    const saved = (state.trip.compare && state.trip.compare.opts) || view.cmpOpts;
+    if (saved) return OPT.map((_, i) => saved[i] && saved[i].start ? saved[i] : { start: "", end: "" });
+    const s = settings();
+    return [{ start: s.start, end: s.end }, { start: "2027-09-19", end: "2027-10-01" }, { start: "", end: "" }];
+  }
+  function setOpt(i, patch) {
+    const opts = cmpOpts().map((o, j) => (j === i ? { ...o, ...patch } : o));
+    view.cmpOpts = opts;
+    if (canWrite) put("trip", "compare", { opts }); else render();
+  }
+
+  function datesView() {
+    const s = settings(), t = totals(), cal = seasonCal(), parkDays = Number(s.tixDays) || 5;
+    const opts = cmpOpts().map((o, i) => ({ ...o, ...OPT[i], i, n: nights(o.start, o.end) }));
+    const live = opts.filter((o) => o.start && o.n > 0);
+    if (!opts.some((o) => o.i === view.cmpFocus && o.start && o.n > 0)) view.cmpFocus = live.length ? live[0].i : 0;
+    const focus = opts[view.cmpFocus];
+
+    const optCard = (o) => {
+      if (!o.start) return `<div class="opt empty" style="--opt:${o.color}"><b class="opt-tag">${o.k}</b>${canWrite ? `<button class="btn ghost sm" data-act="opt-add" data-i="${o.i}">${I.plus} Add a ${o.i === 1 ? "second" : "third"} option</button>` : `<span class="muted small">No option ${o.k}</span>`}</div>`;
+      const mix = nightMix(o.start, o.end), wx = weatherFor(o.start, o.end), isTrip = o.start === s.start && o.end === s.end;
+      const off = o.n + 1 - parkDays;
+      return `<div class="opt" style="--opt:${o.color}">
+        <div class="row between"><b class="opt-tag">${o.k}</b><span class="small" style="font-weight:800">${esc(span(o.start, o.end))}</span>
+          ${o.i > 0 && canWrite ? `<button class="x" data-act="opt-clear" data-i="${o.i}" aria-label="Remove option ${o.k}">×</button>` : `<span></span>`}</div>
+        <div class="dates">
+          <div class="field"><label for="opt-start-${o.i}">Check-in</label><input id="opt-start-${o.i}" data-opt-start="${o.i}" type="date" value="${esc(o.start)}" min="2027-01-01" max="2027-12-31"></div>
+          <div class="field"><label for="opt-nights-${o.i}">Nights</label><input id="opt-nights-${o.i}" data-opt-nights="${o.i}" type="number" inputmode="numeric" min="1" max="30" value="${o.n > 0 ? o.n : ""}"></div>
+        </div>
+        ${o.n > 0 ? `<div class="small muted">Check-out ${esc(fmt(o.end, { weekday: "short", month: "short", day: "numeric" }))} · ${mix.we} Fri/Sat night${mix.we === 1 ? "" : "s"} · ${parkDays} park + ${Math.max(0, off)} off days</div>
+        ${wx && wx.known.length ? `<div class="small">${I.sun} Usually ${wx.hiMin === wx.hiMax ? wx.hiMax : `${wx.hiMin}–${wx.hiMax}`}° / ${wx.loMin}–${wx.loMax}° · ${wx.rainAvg}% rain chance · ~${Math.round(wx.rainDays)} rainy day${Math.round(wx.rainDays) === 1 ? "" : "s"}</div>` : ""}
+        ${isTrip ? `<span class="pill good">Our trip dates</span>` : canWrite ? `<div><button class="btn quiet sm" data-act="use-dates" data-i="${o.i}">Make these our trip dates</button></div>` : ""}`
+        : `<div class="small" style="color:var(--bad)">Pick a check-in and number of nights.</div>`}
+      </div>`;
+    };
+
+    const rows = [];
+    Object.entries(charts()).forEach(([rid, r]) => (r.rooms || []).forEach((room) => {
+      const ppp = Number(r.ppp) || 0;
+      const per = live.map((o) => { const p = stayPoints(room, o.start, o.end), total = p.pts * ppp; return { o, pts: p.pts, missing: p.missing, total, left: t.budget - t.other - total }; });
+      rows.push({ rid, r, room, ppp, per });
+    }));
+    const f = view.cmpFilter;
+    let list = rows;
+    if (f === "five") list = list.filter((x) => x.room.sleeps >= 5);
+    if (f === "studio") list = list.filter((x) => x.room.size === "Studio" && x.room.sleeps >= 5);
+    if (f === "1br") list = list.filter((x) => x.room.size !== "Studio");
+    if (f === "walk") list = list.filter((x) => x.r.walk);
+    const sortIdx = Math.max(0, live.findIndex((o) => o.i === view.cmpFocus));
+    list.sort((a, b) => ((a.per[sortIdx] || {}).total || 0) - ((b.per[sortIdx] || {}).total || 0));
+    const chip = (k, label) => `<button class="chip" data-act="cmp-filter" data-k="${k}" aria-pressed="${f === k}">${label}</button>`;
+    const anyMissing = rows.some((x) => x.per.some((p) => p.missing));
+
+    const cards = list.map((x) => {
+      const min = Math.min(...x.per.map((p) => p.total));
+      const cells = x.per.map((p) => `<div class="optcell" style="--opt:${p.o.color}">
+          <div class="row between"><b class="opt-tag sm">${p.o.k}</b>${x.per.length > 1 && p.total === min ? `<span class="pill good">Cheapest</span>` : ""}</div>
+          <strong class="num">${money(p.total)}</strong>
+          <span class="muted small num">${p.pts} pts<span class="nn"> · ${p.o.n} nights</span>${p.missing ? ` (+${p.missing} uncharted)` : ""}</span>
+          <span class="small" style="font-weight:800;color:var(--${p.left >= 0 ? "good" : "bad"})">${p.left >= 0 ? `${money(p.left)} under` : `${money(-p.left)} over`}</span>
+          ${canWrite ? `<button class="btn quiet sm" data-act="cmp-save" data-rid="${esc(x.rid)}" data-room="${esc(x.room.id)}" data-i="${p.o.i}" aria-label="Add option ${p.o.k} for ${esc(x.r.name)} to Resorts">${I.plus} Add</button>` : ""}
+        </div>`).join("");
+      return `<article class="card resort cmp">
+        <div><h3>${esc(x.r.name)}</h3><div class="muted small">${esc(x.room.label)}${x.r.vibe ? " · " + esc(x.r.vibe) : ""}</div></div>
+        <div class="tags">
+          <span class="pill ${x.room.sleeps >= 5 ? "plain" : "bad"}">Sleeps ${x.room.sleeps}</span>${pcCount(x.r.name)}
+          <span class="pill plain">${esc(x.room.kitchen)}</span>
+          ${x.r.walk ? `<span class="pill good">Walk to EPCOT &amp; Hollywood Studios</span>` : ""}
+        </div>
+        <div class="optgrid" style="--cols:${x.per.length}">${cells}</div>
+        <label class="ppp">$<input type="number" inputmode="decimal" step="0.5" min="0" value="${esc(x.ppp)}" data-ppp="${esc(x.rid)}" aria-label="Dollars per point at ${esc(x.r.name)}" ${canWrite ? "" : "disabled"}> per point</label>
+      </article>`;
+    }).join("");
+
+    const focusChips = live.length > 1 ? `<div class="toolbar" role="group" aria-label="Show details for">${live.map((o) => `<button class="chip" data-act="cmp-focus" data-i="${o.i}" aria-pressed="${o.i === view.cmpFocus}">Option ${o.k}</button>`).join("")}</div>` : "";
+
+    return `<div class="row between"><h2>Compare dates</h2></div>
+      <div class="muted">Set up to three date options. Every resort's real points cost shows side by side, with how each fits the ${money(t.budget)} budget once everything else (${money(t.other)}) is in.</div>
+      <section class="optrow">${opts.map(optCard).join("")}</section>
+      ${live.length ? `${focusChips}${weatherCard(focus.start, focus.end)}` : ""}
+      ${live.length ? `<div class="toolbar" role="group" aria-label="Filter rooms">${chip("five", "Sleeps 5")}${chip("studio", "5th-sleeper studios")}${chip("1br", "1 bedrooms &amp; cabins")}${chip("walk", "Walk to parks")}${chip("all", "Every room")}</div>
+      <div class="muted small">Sorted by option ${OPT[view.cmpFocus].k}, cheapest first.${live.length > 1 ? " Tap an option above to sort by it." : ""}</div>
+      ${anyMissing ? `<div class="soft small">Some nights fall outside 2027. Only the 2027 points charts are out, so those nights aren't counted.</div>` : ""}
+      ${cards || `<div class="card empty">Nothing matches this filter.</div>`}` : ""}
+      <div class="src">Points: ${link(cal.url, cal.source)}. Each night is priced by its season and whether it's a Friday or Saturday night. Matches all 11 rental quotes we had (e.g. BoardWalk studio Sep 19 – Oct 1 = 126 pts). Chart PDFs: ${Object.values(charts()).map((r) => link(r.url, r.name)).join(", ")}. $ per point is from our rental quotes; tap to change it.</div>`;
   }
 
   function budgetView() {
@@ -552,8 +845,42 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       <section class="card stack">${leftHTML(t)}${meterHTML(t)}
         ${t.left < 0 ? `<div class="soft small">Over by <b style="color:var(--bad)">${money(-t.left)}</b>. Earlier dates or a studio instead of a 1 bedroom could close the gap.</div>` : `<div class="soft small">Room for extras: <b style="color:var(--good)">${money(t.left)}</b>.</div>`}
         ${canWrite ? `<div><button class="btn ghost sm" data-act="edit-trip">Change budget</button></div>` : ""}</section>
+      ${ticketCard(t)}
       <section class="card"><div class="list">${groups.map((g) => `<div class="eyebrow" style="margin-top:10px">${esc(CATS[g.c].label)}</div>${g.html}`).join("")}</div>
       ${!t.items.length ? `<div class="empty">No other costs yet. Add tickets, travel and food to see the full picture.</div>` : ""}</section>`;
+  }
+  // Park days vs off days for the trip dates. Check-in and check-out days count as days there.
+  function dayPlanHTML(parkDays, start, end) {
+    const s = settings(), n = nights(start || s.start, end || s.end); if (n <= 0) return "";
+    const there = n + 1, off = there - parkDays;
+    if (off < 0) return `<div class="soft small" style="color:var(--bad)">That's more park days than the ${there} days we're there.</div>`;
+    const dots = Array.from({ length: there }, (_, i) => `<i style="background:${i < parkDays ? "var(--c-tickets)" : "var(--c-mugs)"}"></i>`).join("");
+    return `<div class="soft stack" style="gap:6px">
+      <div class="small"><b>${n} nights = ${there} days there:</b> <span style="color:var(--c-tickets);font-weight:800">${parkDays} park days</span> + <span style="color:var(--c-mugs);font-weight:800">${off} off days</span> (counting travel days)</div>
+      <div class="daydots" aria-hidden="true">${dots}</div></div>`;
+  }
+  function ticketCard(t) {
+    const s = settings(), T = ticketRef(), days = Number(s.tixDays) || 5, ad = Number(s.tixAdults) || 0, ch = Number(s.tixKids) || 0;
+    const e = ticketEstimate(days, ad, ch); if (!e) return "";
+    const line = t.items.find((i) => i.cat === "tickets");
+    const chip = (d) => `<button class="chip" data-act="tix-days" data-k="${d}" aria-pressed="${d === days}" ${canWrite ? "" : "disabled"}>${d} days</button>`;
+    return `<section class="card stack">
+      <div class="row between"><h3>Park tickets</h3><span class="pill warn">Estimate</span></div>
+      <div class="muted small">How many days do we want in the parks? Tickets only cover park days. Off days at the resort, the pool or shopping cost nothing.</div>
+      <div class="toolbar" role="group" aria-label="Park days">${[3, 4, 5, 6, 7, 8, 9, 10].map(chip).join("")}</div>
+      ${dayPlanHTML(days)}
+      <div class="dates">
+        <div class="field"><label for="tix-ad">Adult price (ages 10+)</label><input id="tix-ad" type="number" min="0" inputmode="numeric" value="${ad}" ${canWrite ? "" : "disabled"}></div>
+        <div class="field"><label for="tix-ch">Child price (ages 3–9)</label><input id="tix-ch" type="number" min="0" inputmode="numeric" value="${ch}" ${canWrite ? "" : "disabled"}></div>
+      </div>
+      <div class="big3">
+        <div><span class="eyebrow">Lowest</span><strong>${money(e.low)}</strong></div>
+        <div><span class="eyebrow">Likely</span><strong style="color:var(--berry)">${money(e.mid)}</strong></div>
+        <div><span class="eyebrow">High</span><strong>${money(e.high)}</strong></div></div>
+      <div class="soft small">${days}-day ticket, 1 park per day, with tax. About ${money(e.adult * (1 + T.likely) * (1 + T.tax))} per adult-price ticket and ${money(e.child * (1 + T.likely) * (1 + T.tax))} per child ticket. Only Annie (3) gets child pricing; Amelia and Avery are 10+ by the trip.</div>
+      ${canWrite && line && Math.round(line.amount) !== Math.round(e.mid) ? `<div><button class="btn sm" data-act="tix-use" data-id="${esc(line.id)}">Use ${money(e.mid)} in the budget</button></div>` : line ? `<div class="muted small">The budget uses the likely amount.</div>` : ""}
+      <div class="muted small">${esc(T.how)}</div>
+      <div class="src">Source: ${link(T.url, T.source)}, checked ${esc(fmt(T.asOf, { month: "short", day: "numeric", year: "numeric" }))}; ${link(T.url2, T.source2)}. Replace this with Disney's real total once it shows our start date.</div></section>`;
   }
   function itemRow(i) {
     const st = i.status || "Estimate";
@@ -597,6 +924,28 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
           <div><div class="t">${esc(x.text)}</div><div class="muted small">${x.d ? esc(fmt(x.d, { weekday: "short", month: "short", day: "numeric", year: "numeric" })) : "Anytime"}${x.note ? " · " + esc(x.note) : ""}</div></div>
           <div class="row" style="gap:6px;flex-wrap:nowrap">${r && !x.done ? `<span class="pill ${r.cls}">${r.text}</span>` : ""}${canWrite ? `<button class="icon-btn" data-act="edit-todo" data-id="${x.id}" aria-label="Edit">${I.pencil}</button>` : ""}</div></div>`;
       }).join("")}</div>` : `<div class="empty"><h3>No to-dos yet</h3><div>Add booking windows and reminders here.</div></div>`}</section>`;
+  }
+
+  // News is fetched by Claude from the sites' RSS feeds and written to the db (the page itself can't reach the internet).
+  function newsView() {
+    const meta = state.ref.news || {};
+    const all = entries("news").sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    const tags = [...new Set(all.flatMap((n) => n.tags || []))];
+    const tag = tags.includes(view.newsTag) ? view.newsTag : "all";
+    const list = tag === "all" ? all : all.filter((n) => (n.tags || []).includes(tag));
+    const ago = (iso) => { const d = new Date(iso); if (isNaN(d)) return ""; const h = Math.round((Date.now() - d) / 36e5); return h < 1 ? "Just now" : h < 24 ? `${h}h ago` : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
+    const chip = (k, label) => `<button class="chip" data-act="news-tag" data-k="${esc(k)}" aria-pressed="${tag === k}">${esc(label)}</button>`;
+    return `<div class="row between"><h2>Disney World news</h2></div>
+      <div class="muted small">Latest Walt Disney World stories${meta.updated ? `, updated ${esc(new Date(meta.updated).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}` : ""}. Tap a headline to read it on the site.</div>
+      ${tags.length ? `<div class="toolbar" role="group" aria-label="Filter news">${chip("all", "All")}${tags.map((x) => chip(x, x)).join("")}</div>` : ""}
+      ${list.length ? `<section class="card"><div class="list">${list.map((n) => `<article class="news item" style="grid-template-columns:1fr">
+          <div class="row" style="gap:6px"><span class="pill">${esc(n.source)}</span><span class="muted small">${esc(ago(n.date))}</span></div>
+          <a class="t" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>
+          ${n.summary ? `<div class="muted small">${esc(n.summary)}</div>` : ""}
+          ${(n.tags || []).length ? `<div class="tags">${n.tags.map((x) => `<span class="pill plain">${esc(x)}</span>`).join("")}</div>` : ""}
+        </article>`).join("")}</div></section>`
+        : `<div class="card empty"><h3>No news yet</h3><div>Stories show up here once Claude loads the latest headlines.</div></div>`}
+      ${meta.sources ? `<div class="src">Sources (RSS feeds): ${meta.sources.map((x) => link(x.url, x.name)).join(", ")}. Only Walt Disney World stories are kept.</div>` : ""}`;
   }
 
   // ---------- sheet (edit forms) ----------
@@ -720,7 +1069,42 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     if (act === "sort") return;
     if (act === "tab") { view.tab = el.dataset.k; store.set(LS_KEY + ":tab", view.tab); render(); window.scrollTo({ top: 0 }); return; }
     if (act === "filter") { view.filter = el.dataset.k; render(); return; }
+    if (act === "cmp-filter") { view.cmpFilter = el.dataset.k; render(); return; }
+    if (act === "cmp-focus") { view.cmpFocus = Number(el.dataset.i); render(); return; }
+    if (act === "news-tag") { view.newsTag = el.dataset.k; render(); return; }
     if (!canWrite) return;
+    if (act === "pc-add") {
+      const key = el.dataset.key, kind = el.dataset.kind, input = el.parentElement.querySelector("[data-pc-input]"), text = input ? input.value.trim() : "";
+      if (!text) { if (input) input.focus(); return; }
+      input.value = "";
+      const cur = state.proscons[key] || { name: el.dataset.name, pros: [], cons: [] };
+      put("proscons", key, { ...cur, [kind]: [...(cur[kind] || []), { id: uid(), text, by: me }] });
+      return;
+    }
+    if (act === "pc-del") {
+      const key = el.dataset.key, kind = el.dataset.kind, cur = state.proscons[key]; if (!cur) return;
+      put("proscons", key, { ...cur, [kind]: (cur[kind] || []).filter((x) => x.id !== el.dataset.id) });
+      return;
+    }
+    if (act === "tix-days") { setSettings({ tixDays: Number(el.dataset.k) }); return; }
+    if (act === "tix-use") {
+      const s = settings(), e = ticketEstimate(Number(s.tixDays), Number(s.tixAdults), Number(s.tixKids)), cur = state.budget[id]; if (!e || !cur) return;
+      put("budget", id, { ...cur, amount: Math.round(e.mid), status: "Estimate", note: `${s.tixDays}-day tickets, ${s.tixAdults} adult-price + ${s.tixKids} child, with tax. Formula estimate from Disney's 2027 lowest prices; swap in the real total when we buy.` });
+      toast("Ticket estimate added to the budget"); return;
+    }
+    if (act === "use-dates") { const o = cmpOpts()[Number(el.dataset.i)]; setSettings({ start: o.start, end: o.end }); toast("Trip dates updated!"); return; }
+    if (act === "opt-add") {
+      const i = Number(el.dataset.i), prev = cmpOpts()[i - 1] || cmpOpts()[0], k = nights(prev.start, prev.end) || 12;
+      setOpt(i, { start: prev.start || settings().start, end: addDays(prev.start || settings().start, k) }); return;
+    }
+    if (act === "opt-clear") { setOpt(Number(el.dataset.i), { start: "", end: "" }); return; }
+    if (act === "cmp-save") {
+      const r = charts()[el.dataset.rid], room = (r.rooms || []).find((x) => x.id === el.dataset.room); if (!room) return;
+      const { start, end } = cmpOpts()[Number(el.dataset.i)], p = stayPoints(room, start, end), ppp = Number(r.ppp) || 0;
+      put("resorts", uid(), { name: r.name, room: room.label, size: room.size, sleeps: room.sleeps, kitchen: room.kitchen, start, end, total: p.pts * ppp, points: p.pts, ppp,
+        source: "DVC rental", walk: !!r.walk, eeh: true, vibe: r.vibe || "", notes: "Priced from the official 2027 DVC points chart.", hearts: [], out: false });
+      toast(`Added ${r.name} to Resorts`); return;
+    }
     if (act === "heart") {
       const c = el.dataset.c, cur = state[c][id]; const h = [...(cur.hearts || [])];
       const i = h.indexOf(me); if (i >= 0) h.splice(i, 1); else h.push(me);
@@ -737,10 +1121,32 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     if (act === "add-wish" || act === "edit-wish") return editWish(id);
     if (act === "add-todo" || act === "edit-todo") return editTodo(id);
   });
-  document.addEventListener("change", (e) => { if (e.target.id === "sort") { view.sort = e.target.value; render(); } });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+  document.addEventListener("change", (e) => {
+    const el = e.target;
+    if (el.id === "sort") { view.sort = el.value; render(); return; }
+    // Check-in and nights set check-out. Moving check-in keeps the same number of nights.
+    if (el.dataset.optStart) { const i = Number(el.dataset.optStart), o = cmpOpts()[i], k = nights(o.start, o.end); if (el.value) setOpt(i, { start: el.value, end: addDays(el.value, k > 0 ? k : 12) }); else render(); return; }
+    if (el.dataset.optNights) { const i = Number(el.dataset.optNights), k = Math.round(Number(el.value)); if (k >= 1 && k <= 30) setOpt(i, { end: addDays(cmpOpts()[i].start, k) }); else render(); return; }
+    if ((el.id === "tix-ad" || el.id === "tix-ch") && canWrite) {
+      const v = Math.max(0, Math.round(Number(el.value) || 0));
+      setSettings(el.id === "tix-ad" ? { tixAdults: v } : { tixKids: v }); return;
+    }
+    if (el.dataset.ppp && canWrite) {
+      const rid = el.dataset.ppp, v = Number(el.value);
+      if (!(v > 0)) { render(); return; }
+      put("dvc", rid, { ...charts()[rid], ppp: v });
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeSheet();
+    // Enter in a pro/con box adds it as a pro; the − Con button is right beside it.
+    if (e.key === "Enter" && e.target.dataset && e.target.dataset.pcInput) { e.preventDefault(); const b = e.target.parentElement.querySelector('[data-kind="pros"]'); if (b) b.click(); }
+  });
   window.addEventListener("hashchange", () => { const t = location.hash.slice(1); if (TABS.some((x) => x[0] === t)) { view.tab = t; render(); } });
 
   boot();
 })();
 </script>
+
+</body>
+</html>

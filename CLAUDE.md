@@ -11,19 +11,25 @@ A pink, phone-first planner for a Walt Disney World trip, built for my wife. She
 - Later dates are cooler but cost more; earlier are cheaper but hotter.
 
 ## The app
-- One self-contained file: `index.html` (HTML/CSS/JS, no build step). Tabs: Home, Resorts, Budget, Dream list, To-do.
-- Published as a claude.ai artifact: **https://claude.ai/artifact/XoojCoRWJGJiB31w4jiKoQ** (owner: me). Republish to that same URL, never a new one. Read it with the Artifact tool first if this session hasn't published it.
-- Artifact capabilities: `{"db": {}, "user": {"scopes": ["profile"]}}`. The artifact sandbox blocks all outside network requests, so the page can't call APIs. Data has to be fetched by Claude and written into the artifact's db.
-- Storage: in the artifact it uses the `db` capability (shared by both of us, live). Opened as a plain file it falls back to localStorage and seeds from the `STARTER` object in the code.
-- db collections (one doc per item):
-  - `trip/settings`: `{budget, start, end, adults, kids, pickId}`
+- **Live at https://dtp.ondorilabo.com.** A Cloudflare Worker (`worker/index.js`, config `wrangler.jsonc`) serves `index.html` and keeps the shared plan in the D1 database `disney-trip-planner` (table `docs`). The README has the API and the deploy command. There's no sign-in, by choice.
+- One self-contained page: `index.html` (HTML/CSS/JS, no build step). Tabs: Home, Resorts, Dates, Budget, Dreams, To-do, News.
+- Storage modes: on the website it uses the Worker API and checks for changes every 5 seconds. The claude.ai artifact (https://claude.ai/artifact/XoojCoRWJGJiB31w4jiKoQ) still runs but is **no longer the live copy**. Opened as a file, it uses localStorage seeded from `STARTER`.
+- Change live data through the API (`PUT`/`DELETE https://dtp.ondorilabo.com/api/docs/<coll>/<id>`), not with the artifact tools.
+- Ticket prices: 4 adult-price + 1 child ticket (Amelia, 13, and Avery, 10, pay adult prices by the trip; Annie is 3). The tickets line is a formula estimate (`ref/tickets`).
+- Collections (one doc per item):
+  - `trip/settings`: `{budget, start, end, adults, kids, pickId, tixDays, tixAdults, tixKids}`; `trip/compare`: `{opts: [{start, end} ×3]}`
+  - `proscons/<resort-slug>`: `{name, pros[], cons[]}` (items `{id, text, by}`)
+  - `dvc/<resort>` (official 2027 points charts), `ref/seasons2027`, `ref/weather`, `ref/tickets`, `ref/news`, `news/<id>`
   - `resorts/<id>`: `{name, room, size, sleeps, kitchen, start, end, total, points, ppp, source, walk, eeh, vibe, notes, hearts[], out}`
   - `budget/<id>`: `{label, cat, amount, status, note}` (`cat` is one of stay, tickets, travel, food, mugs, fun, other; the picked resort fills the stay line automatically)
   - `wishes/<id>`: `{text, park, hearts[], done}`
   - `todos/<id>`: `{text, months|days|due, done, note}` (dates count back from check-in)
 - The db is already seeded with her real quotes (from her screenshots of a DVC rental site). The budget lines for tickets, travel, food, mugs and souvenirs are **my guesses**, marked "Estimate".
 
-## Next up (not done yet)
+## Status
+Done: everything in the list below except real ticket totals. Disney's ticket calendar won't load in an automated browser, so the tickets line is still an estimate. Also done: up to 3 date options, pros and cons, park days vs. off days, and a News tab.
+
+## Original brief
 1. **Real DVC pricing by date.** Get the official 2027 DVC points charts (points per night by resort, room type, season, weeknight vs. weekend) for the resorts she's comparing: BoardWalk, Beach Club, Riviera, Grand Floridian, Polynesian, Old Key West, Fort Wilderness Cabins, Animal Kingdom Villas (Kidani), Bay Lake Tower. Studio and 1-bedroom at minimum. Store the charts in the db. Her quoted $/point: BWV $26, OKW $22, BCV $29, Riviera $24, VGF $26, Poly $29, Cabins $29, AKV $24, BLT $24.
 2. **Compare dates screen.** She picks check-in/check-out and sees every resort's real cost (points × $/point, editable), side by side, and how far each leaves us under or over $15K. Check results against her quotes (e.g. BWV studio Sep 19–Oct 1 2027 = 126 pts = $3,276; Sep 22–Oct 5 = 156 pts = $4,056; OKW 1BR Sep 19–Oct 1 = 250 pts; Sep 22–Oct 5 = 314 pts).
 3. **Real ticket prices.** 2027 tickets are on sale. Replace the $4,500 ticket estimate with actual multi-day prices for 2 adults + 3 kids for the chosen dates (note kids' ages matter: 3–9 is child pricing).

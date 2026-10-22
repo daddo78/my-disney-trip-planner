@@ -1,0 +1,3 @@
+# Only the page is served as a static file; everything else in the repo stays private to the Worker build.
+*
+!index.html
