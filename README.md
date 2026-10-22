@@ -1,6 +1,6 @@
 # Our Disney Trip
 
-A pink, phone-friendly planner for our Walt Disney World trip (late September 2027, 2 adults + 3 kids, $15,000 budget).
+A phone-friendly planner, in vintage Disneyland ticket-book colors, for our Walt Disney World trip (late September 2027, 2 adults + 3 kids, $15,000 budget).
 
 Live at **https://dtp.ondorilabo.com**. Both phones see the same plan, and changes show up on the other phone within about 5 seconds.
 

@@ -8,38 +8,41 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="icons/site.webmanifest">
-<meta name="theme-color" content="#E0407F">
+<meta name="theme-color" content="#95D6B3">
 <meta name="apple-mobile-web-app-title" content="Disney Trip">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
-/* Layout: one phone-first column on a blush polka-dot ground, a berry hero ticket up top, tab bar pinned to the bottom. */
+/* Layout: one phone-first column on a cream polka-dot ground, a mint ticket hero with a brown stub up top, tab bar pinned to the bottom.
+   Colors come from a vintage Disneyland ticket book: castle red, navy lettering, mint, brown stub, cream, orange, peach, yellow, sage. */
 :root {
-  --bg: #FFF4F8; --dot: #FFDDEB; --surface: #FFFFFF; --surface-2: #FFEEF5; --line: #F5D0E1;
-  --ink: #3F1D38; --muted: #8A5C7D;
-  --pink: #E0407F; --pink-soft: #FFD6E8; --berry: #9E2A62; --on-pink: #FFFFFF;
-  --hero-a: #EC4E8E; --hero-b: #9E2A62; --on-hero: #FFFFFF;
-  --good: #1F7A52; --good-soft: #D8F2E5; --warn: #A15C00; --warn-soft: #FFEBC9; --bad: #C22D47; --bad-soft: #FFDDE3;
-  --c-stay: #E0407F; --c-tickets: #9B6BD6; --c-travel: #F0845A; --c-food: #E2AB2F; --c-mugs: #3FAE9F; --c-fun: #5C8FE3; --c-other: #C77DB0;
-  --shadow: 0 6px 22px rgba(158, 42, 98, .13);
+  --bg: #FFF1CB; --dot: #F9E4B0; --surface: #FFFCF3; --surface-2: #FDF0D3; --line: #EBD7A6;
+  --ink: #0D1C2E; --muted: #6A5A42;
+  --accent: #C9472D; --accent-soft: #F4D0B3; --accent-ink: #7A3E10; --on-accent: #FFFFFF;
+  --hero-a: #95D6B3; --hero-b: #7FC9A2; --on-hero: #0D1C2E; --hero-pill: rgba(255, 252, 243, .55); --stub: #905318;
+  --good: #24704F; --good-soft: #DDF1E4; --warn: #8A4F00; --warn-soft: #FFE5B0; --bad: #A93A21; --bad-soft: #FBDCD3;
+  --c-stay: #C9472D; --c-tickets: #FF9E44; --c-travel: #905318; --c-food: #FFC754; --c-mugs: #2E7D5E; --c-fun: #A3B573; --c-other: #E9AE84;
+  --shadow: 0 6px 22px rgba(13, 28, 46, .10);
   --display: "Fredoka", ui-rounded, "Arial Rounded MT Bold", system-ui, sans-serif;
   --body: "Nunito", ui-rounded, system-ui, -apple-system, "Segoe UI", sans-serif;
   --r: 18px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #1E0E1A; --dot: #2B1526; --surface: #2C1628; --surface-2: #3A1D35; --line: #4F2847;
-  --ink: #FCE9F3; --muted: #D3A5C1;
-  --pink: #FF72B0; --pink-soft: #5A2347; --berry: #FFB3D4; --on-pink: #2A0C1F;
-  --hero-a: #A8336D; --hero-b: #5A1A47; --on-hero: #FFEAF4;
-  --good: #73D9A5; --good-soft: #173D2C; --warn: #F5BC63; --warn-soft: #402D10; --bad: #FF8C9C; --bad-soft: #4C1A24;
+  --bg: #0D1C2E; --dot: #13263B; --surface: #14273C; --surface-2: #1C3249; --line: #2A4560;
+  --ink: #FFF1CB; --muted: #CBBF9F;
+  --accent: #FF9E44; --accent-soft: #3D2A16; --accent-ink: #FFC754; --on-accent: #0D1C2E;
+  --hero-a: #2B6653; --hero-b: #1F4E41; --on-hero: #FFF1CB; --hero-pill: rgba(13, 28, 46, .35); --stub: #B06A26;
+  --good: #8FDDB6; --good-soft: #173D2C; --warn: #FFC754; --warn-soft: #3D2E10; --bad: #FF8F70; --bad-soft: #4A2018;
+  --c-stay: #E8674A; --c-mugs: #5FBF95; --c-travel: #C98A4A;
   --shadow: 0 6px 22px rgba(0, 0, 0, .35);
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
-  --bg: #1E0E1A; --dot: #2B1526; --surface: #2C1628; --surface-2: #3A1D35; --line: #4F2847;
-  --ink: #FCE9F3; --muted: #D3A5C1;
-  --pink: #FF72B0; --pink-soft: #5A2347; --berry: #FFB3D4; --on-pink: #2A0C1F;
-  --hero-a: #A8336D; --hero-b: #5A1A47; --on-hero: #FFEAF4;
-  --good: #73D9A5; --good-soft: #173D2C; --warn: #F5BC63; --warn-soft: #402D10; --bad: #FF8C9C; --bad-soft: #4C1A24;
+  --bg: #0D1C2E; --dot: #13263B; --surface: #14273C; --surface-2: #1C3249; --line: #2A4560;
+  --ink: #FFF1CB; --muted: #CBBF9F;
+  --accent: #FF9E44; --accent-soft: #3D2A16; --accent-ink: #FFC754; --on-accent: #0D1C2E;
+  --hero-a: #2B6653; --hero-b: #1F4E41; --on-hero: #FFF1CB; --hero-pill: rgba(13, 28, 46, .35); --stub: #B06A26;
+  --good: #8FDDB6; --good-soft: #173D2C; --warn: #FFC754; --warn-soft: #3D2E10; --bad: #FF8F70; --bad-soft: #4A2018;
+  --c-stay: #E8674A; --c-mugs: #5FBF95; --c-travel: #C98A4A;
   --shadow: 0 6px 22px rgba(0, 0, 0, .35);
   color-scheme: dark;
 }
@@ -55,7 +58,7 @@ body {
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; border-radius: 10px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
 h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; line-height: 1.15; }
 h2 { font-size: 1.5rem; }
 h3 { font-size: 1.15rem; }
@@ -83,14 +86,14 @@ main { max-width: 760px; margin: 0 auto; padding-block: 18px calc(110px + env(sa
 
 /* hero ticket */
 .hero { position: relative; overflow: hidden; border-radius: 26px; padding: 22px 22px 20px; color: var(--on-hero);
-  background: linear-gradient(140deg, var(--hero-a), var(--hero-b)); box-shadow: var(--shadow); }
+  background: linear-gradient(140deg, var(--hero-a), var(--hero-b)); box-shadow: var(--shadow); border-left: 16px solid var(--stub); }
 .hero .eyebrow { color: var(--on-hero); opacity: .85; }
-.hero h1 { font-size: clamp(1.7rem, 6vw, 2.3rem); margin-top: 4px; }
+.hero h1 { font-size: clamp(1.7rem, 6vw, 2.3rem); margin-top: 4px; display: inline-block; padding-bottom: 4px; border-bottom: 3px solid var(--accent); }
 .count { display: flex; align-items: baseline; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 .count strong { font-family: var(--display); font-size: clamp(3.4rem, 15vw, 5rem); font-weight: 700; line-height: .9; }
 .count span { font-family: var(--display); font-size: 1.2rem; }
 .hero .meta { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
-.hero .pill { background: rgba(255,255,255,.18); color: var(--on-hero); border: 0; }
+.hero .pill { background: var(--hero-pill); color: var(--on-hero); border: 0; }
 .hero .edit { position: absolute; top: 14px; right: 14px; }
 .sparkle { position: absolute; pointer-events: none; color: var(--on-hero); opacity: .5; }
 .perf { position: absolute; left: 0; right: 0; bottom: 0; height: 10px;
@@ -98,20 +101,20 @@ main { max-width: 760px; margin: 0 auto; padding-block: 18px calc(110px + env(sa
 
 /* pills & buttons */
 .pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px; font-size: .8rem; font-weight: 700;
-  background: var(--pink-soft); color: var(--berry); border: 0; white-space: nowrap; }
+  background: var(--accent-soft); color: var(--accent-ink); border: 0; white-space: nowrap; }
 .pill.good { background: var(--good-soft); color: var(--good); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 .pill.bad { background: var(--bad-soft); color: var(--bad); }
 .pill.plain { background: var(--surface-2); color: var(--muted); }
-.btn { border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 800; background: var(--pink); color: var(--on-pink); display: inline-flex; align-items: center; gap: 6px; }
-.btn.ghost { background: var(--pink-soft); color: var(--berry); }
+.btn { border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 800; background: var(--accent); color: var(--on-accent); display: inline-flex; align-items: center; gap: 6px; }
+.btn.ghost { background: var(--accent-soft); color: var(--accent-ink); }
 .btn.quiet { background: transparent; color: var(--muted); padding: 8px 10px; }
 .btn.sm { padding: 6px 12px; font-size: .875rem; }
 .btn:hover { filter: brightness(1.05); }
 .icon-btn { border: 0; background: rgba(255,255,255,.2); color: inherit; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; }
 .card .icon-btn { background: var(--surface-2); color: var(--muted); }
 .heart { border: 0; background: var(--surface-2); color: var(--muted); border-radius: 999px; padding: 6px 12px; font-weight: 800; display: inline-flex; gap: 6px; align-items: center; }
-.heart.on { background: var(--pink-soft); color: var(--pink); }
+.heart.on { background: var(--accent-soft); color: var(--accent); }
 .heart svg { width: 18px; height: 18px; }
 .heart.pop svg { animation: pop .35s ease; }
 @keyframes pop { 50% { transform: scale(1.35); } }
@@ -129,9 +132,9 @@ main { max-width: 760px; margin: 0 auto; padding-block: 18px calc(110px + env(sa
 /* resorts */
 .toolbar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
 .chip { border: 2px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; font-weight: 700; white-space: nowrap; font-size: .9rem; }
-.chip[aria-pressed="true"] { background: var(--pink); border-color: var(--pink); color: var(--on-pink); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .resort { display: grid; gap: 12px; }
-.resort.picked { outline: 3px solid var(--pink); }
+.resort.picked { outline: 3px solid var(--accent); }
 .resort .head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
 .resort .head > div { min-width: 0; }
 .price { text-align: right; flex: none; }
@@ -140,10 +143,10 @@ main { max-width: 760px; margin: 0 auto; padding-block: 18px calc(110px + env(sa
 .costbar { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .costbar span { display: block; height: 100%; background: var(--c-stay); border-radius: 999px; }
 .note { white-space: pre-wrap; font-size: .95rem; }
-.quote { border-left: 4px solid var(--pink-soft); padding-left: 10px; }
-.picked-badge { background: var(--pink); color: var(--on-pink); }
+.quote { border-left: 4px solid var(--accent-soft); padding-left: 10px; }
+.picked-badge { background: var(--accent); color: var(--on-accent); }
 .insight { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
-.insight .ic { width: 42px; height: 42px; border-radius: 50%; background: var(--pink-soft); color: var(--pink); display: grid; place-items: center; }
+.insight .ic { width: 42px; height: 42px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
 details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 
 /* lists */
@@ -154,8 +157,8 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .item .t { font-weight: 700; overflow-wrap: anywhere; }
 .item.done .t { text-decoration: line-through; color: var(--muted); }
 .dot { width: 12px; height: 12px; border-radius: 50%; }
-.check { width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid var(--pink); background: transparent; display: grid; place-items: center; color: var(--on-pink); padding: 0; }
-.check.on { background: var(--pink); }
+.check { width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid var(--accent); background: transparent; display: grid; place-items: center; color: var(--on-accent); padding: 0; }
+.check.on { background: var(--accent); }
 .check svg { width: 16px; height: 16px; }
 .amount { font-family: var(--display); font-weight: 600; font-size: 1.1rem; font-variant-numeric: tabular-nums; text-align: right; }
 .park { display: grid; gap: 6px; }
@@ -165,14 +168,14 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 /* tab bar */
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--line);
   padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
-  box-shadow: 0 -4px 18px rgba(158, 42, 98, .08); }
+  box-shadow: 0 -4px 18px rgba(13, 28, 46, .08); }
 .tabs nav { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
 .tabs button { border: 0; background: transparent; color: var(--muted); display: grid; justify-items: center; gap: 2px; padding: 6px 0; border-radius: 14px; font-size: .64rem; font-weight: 800; white-space: nowrap; min-width: 0; }
 .news { display: grid; gap: 6px; }
 .news a.t { color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.08rem; line-height: 1.25; }
-.news a.t:hover { color: var(--pink); }
+.news a.t:hover { color: var(--accent); }
 .tabs button svg { width: 24px; height: 24px; }
-.tabs button[aria-current="page"] { color: var(--pink); background: var(--pink-soft); }
+.tabs button[aria-current="page"] { color: var(--accent); background: var(--accent-soft); }
 
 /* compare dates & weather */
 .dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -181,7 +184,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .opt.empty { box-shadow: none; background: transparent; border: 2px dashed var(--line); border-top: 6px solid var(--line); justify-items: start; }
 .opt .dates { grid-template-columns: 1fr 72px; gap: 8px; }
 .opt .dates input { padding-inline: 8px !important; }
-.opt-tag { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--opt); color: #fff; font-family: var(--display); font-weight: 600; }
+.opt-tag { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--opt); color: var(--surface); font-family: var(--display); font-weight: 600; }
 .opt-tag.sm { width: 22px; height: 22px; font-size: .8rem; }
 .optgrid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 8px; }
 .optcell { background: var(--surface-2); border-radius: 14px; padding: 10px; display: grid; gap: 2px; align-content: start; border-top: 4px solid var(--opt); min-width: 0; }
@@ -214,7 +217,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .wxday .rain i { display: block; width: 100%; background: var(--c-fun); border-radius: 6px; }
 
 /* sheet */
-.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(40, 10, 30, .45); display: grid; align-items: end; justify-items: center; }
+.scrim { position: fixed; inset: 0; z-index: 40; background: rgba(13, 28, 46, .5); display: grid; align-items: end; justify-items: center; }
 .sheet { background: var(--surface); width: min(620px, 100%); max-height: 88vh; overflow-y: auto; border-radius: 26px 26px 0 0;
   padding: 20px max(18px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
   display: grid; gap: 14px; animation: up .22s ease; }
@@ -227,7 +230,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .field input:not([type="checkbox"]), .field select, .field textarea { width: 100%; border: 2px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; min-width: 0; }
 .field textarea { min-height: 90px; resize: vertical; }
 .field.cb { display: flex; align-items: center; gap: 10px; }
-.field.cb input { width: 22px; height: 22px; accent-color: var(--pink); }
+.field.cb input { width: 22px; height: 22px; accent-color: var(--accent); }
 .field.cb label { font-size: .95rem; color: var(--ink); font-weight: 700; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); z-index: 50;
   background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 700; max-width: calc(100% - 32px); }
@@ -737,7 +740,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   }
 
   // Up to three date options, compared side by side. Saved in trip/compare so we both see the same options.
-  const OPT = [{ k: "A", color: "var(--pink)" }, { k: "B", color: "var(--c-tickets)" }, { k: "C", color: "var(--c-mugs)" }];
+  const OPT = [{ k: "A", color: "var(--accent)" }, { k: "B", color: "var(--c-travel)" }, { k: "C", color: "var(--c-mugs)" }];
   const addDays = (iso, k) => { const d = parseD(iso); if (!d) return ""; d.setDate(d.getDate() + k); return isoD(d); };
   function cmpOpts() {
     const saved = (state.trip.compare && state.trip.compare.opts) || view.cmpOpts;
@@ -873,7 +876,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       </div>
       <div class="big3">
         <div><span class="eyebrow">Lowest</span><strong>${money(e.low)}</strong></div>
-        <div><span class="eyebrow">Likely</span><strong style="color:var(--berry)">${money(e.mid)}</strong></div>
+        <div><span class="eyebrow">Likely</span><strong style="color:var(--accent-ink)">${money(e.mid)}</strong></div>
         <div><span class="eyebrow">High</span><strong>${money(e.high)}</strong></div></div>
       <div class="soft small">${days}-day ticket, 1 park per day, with tax. About ${money(e.adult * (1 + T.likely) * (1 + T.tax))} per adult-price ticket and ${money(e.child * (1 + T.likely) * (1 + T.tax))} per child ticket. Only Annie (3) gets child pricing; Amelia and Avery are 10+ by the trip.</div>
       ${canWrite && line && Math.round(line.amount) !== Math.round(e.mid) ? `<div><button class="btn sm" data-act="tix-use" data-id="${esc(line.id)}">Use ${money(e.mid)} in the budget</button></div>` : line ? `<div class="muted small">The budget uses the likely amount.</div>` : ""}
