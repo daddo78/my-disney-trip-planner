@@ -97,7 +97,8 @@ main { max-width: 760px; margin: 0 auto; padding-block: 18px calc(110px + env(sa
 .count span { font-family: var(--display); font-size: 1.2rem; }
 .hero .meta { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
 .hero .pill { background: var(--hero-pill); color: var(--on-hero); border: 0; }
-.hero .edit { position: absolute; top: 14px; right: 14px; }
+/* z-index: the faded eyebrow line forms its own layer and would otherwise sit on top of the button's middle. */
+.hero .edit { position: absolute; top: 12px; right: 12px; z-index: 2; width: 46px; height: 46px; background: var(--hero-pill); border: 2px solid rgba(13, 28, 46, .15); }
 .sparkle { position: absolute; pointer-events: none; color: var(--on-hero); opacity: .5; }
 .perf { position: absolute; left: 0; right: 0; bottom: 0; height: 10px;
   background: radial-gradient(circle at 8px 10px, var(--bg) 6px, transparent 6.5px) 0 0 / 16px 10px repeat-x; }
