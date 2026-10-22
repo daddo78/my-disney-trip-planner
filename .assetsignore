@@ -1,3 +1,5 @@
-# Only the page is served as a static file; everything else in the repo stays private to the Worker build.
+# Only the page and its icons are served as static files; everything else in the repo stays private to the Worker build.
 *
 !index.html
+!icons/
+!icons/*

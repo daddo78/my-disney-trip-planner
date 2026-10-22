@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Our Disney Trip</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="icons/site.webmanifest">
+<meta name="theme-color" content="#E0407F">
+<meta name="apple-mobile-web-app-title" content="Disney Trip">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
 /* Layout: one phone-first column on a blush polka-dot ground, a berry hero ticket up top, tab bar pinned to the bottom. */
@@ -59,14 +64,7 @@ main { max-width: 760px; margin: 0 auto; padding-block: 18px calc(110px + env(sa
 
 /* brand */
 .brand { display: flex; align-items: center; gap: 10px; }
-.ears { position: relative; width: 30px; height: 26px; flex: none; }
-.ears i { position: absolute; border-radius: 50%; background: var(--pink); }
-.ears i:nth-child(1) { width: 18px; height: 18px; left: 6px; bottom: 0; }
-.ears i:nth-child(2), .ears i:nth-child(3) { width: 11px; height: 11px; top: 0; }
-.ears i:nth-child(2) { left: 0; } .ears i:nth-child(3) { right: 0; }
-.bow { position: absolute; left: 10px; top: 4px; width: 10px; height: 7px; }
-.bow::before, .bow::after { content: ""; position: absolute; top: 0; width: 6px; height: 7px; background: var(--berry); border-radius: 50% 10% 10% 50%; }
-.bow::before { left: -1px; } .bow::after { right: -1px; transform: scaleX(-1); }
+.logo { height: 34px; width: auto; flex: none; }
 .brand b { font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .sync { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
@@ -593,7 +591,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     document.getElementById("tabs").innerHTML = TABS.map(([k, label, ic]) =>
       `<button data-act="tab" data-k="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${ic}<span>${label}</span></button>`).join("");
     const app = document.getElementById("app");
-    const top = `<div class="topbar"><div class="brand"><div class="ears" aria-hidden="true"><i></i><i></i><i></i><span class="bow"></span></div><b>Trip Planner</b></div>
+    const top = `<div class="topbar"><div class="brand"><img class="logo" src="icons/logo.png" alt="" width="51" height="34"><b>Trip Planner</b></div>
       <span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span></div>`;
     const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, todo: todoView, news: newsView }[view.tab]();
     // Keep a half-typed pro/con when a live update re-renders the page.
