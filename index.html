@@ -201,7 +201,9 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .navlist .moves .icon-btn:disabled { opacity: .3; }
 
 /* plan: one card per day */
-.day { scroll-margin-top: 16px; }
+.day { scroll-margin-top: 16px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform .18s ease, box-shadow .15s; }
+.day.lifted { position: relative; z-index: 15; transition: box-shadow .15s; box-shadow: 0 16px 40px rgba(13, 28, 46, .28); outline: 3px solid var(--accent); }
+body.dragging { -webkit-user-select: none; user-select: none; }
 .day h3 { margin: 0; display: block; }
 .day h3 .when { display: block; font-family: var(--body); font-size: .8rem; font-weight: 700; color: var(--muted); }
 .day .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
@@ -798,6 +800,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
 
   // ---------- render ----------
   function render() {
+    if (drag) return; // a live update waits until the dragged day is dropped (dragEnd renders)
     const order = navOrder(), inMore = !order.slice(0, BAR).includes(view.tab);
     document.getElementById("tabs").innerHTML = order.slice(0, BAR).map((k) => { const [, label, ic] = tabOf(k);
       return `<button data-act="tab" data-k="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${art(ic)}<span>${label}</span></button>`; }).join("")
@@ -1113,7 +1116,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     }).join("");
     const tally = [parkDays && `${parkDays} park day${parkDays > 1 ? "s" : ""}`, rest && `${rest} rest day${rest > 1 ? "s" : ""}`, travel && `${travel} travel day${travel > 1 ? "s" : ""}`, open && `${open} to pick`].filter(Boolean).join(" · ");
     return `<div class="row between"><h2>Day by day</h2>${art("outpost", 40)}</div>
-      <div class="muted">Tap a day to pick the park or call it a rest day, then add the rides, meals and shows in order.${tally ? ` <b>${tally}.</b>` : ""}</div>
+      <div class="muted">Tap a day to pick the park or call it a rest day, then add the rides, meals and shows in order. Tap and hold a day to drag it to a new spot.${tally ? ` <b>${tally}.</b>` : ""}</div>
       ${days.length > 3 ? `<div class="daystrip" role="group" aria-label="Jump to a day">${strip}</div>` : ""}${cards}
       ${canWrite ? `<div><button class="btn" data-act="add-day">${I.plus} Add Day ${days.length + 1}</button></div>` : ""}`;
   }
@@ -1134,6 +1137,68 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     for (let k = num; k < n; k++) put("days", "d" + k, state.days["d" + (k + 1)] || { park: "", note: "", items: [] });
     remove("days", "d" + n);
   }
+  // Tap and hold a day card, then drag it to a new spot; it takes that day's number and the days between shift over.
+  // A quick swipe still scrolls: the card only lifts after a still hold.
+  let drag = null;
+  const HOLD_MS = 380;
+  function dragStart(e) {
+    const card = e.target.closest(".day");
+    if (!card || !canWrite || view.tab !== "plan" || e.button > 0) return;
+    const cards = [...document.querySelectorAll(".day")];
+    const hold = { card, x: e.clientX, y: e.clientY, id: e.pointerId };
+    hold.timer = setTimeout(() => {
+      const rects = cards.map((c) => c.getBoundingClientRect());
+      const i = cards.indexOf(card), gap = rects[1] ? rects[1].top - rects[0].bottom : 14;
+      drag = { cards, i, t: i, step: rects[i].height + gap, mids: rects.map((r) => r.top + scrollY + r.height / 2), y0: hold.y + scrollY, y: hold.y, moved: false };
+      card.classList.add("lifted"); document.body.classList.add("dragging");
+      if (navigator.vibrate) navigator.vibrate(12);
+      requestAnimationFrame(dragTick);
+    }, HOLD_MS);
+    dragStart.hold = hold;
+  }
+  function dragMove(e) {
+    const hold = dragStart.hold;
+    if (!drag) { if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 8) dragCancelHold(); return; }
+    drag.y = e.clientY; drag.moved = true;
+  }
+  function dragCancelHold() { if (dragStart.hold) clearTimeout(dragStart.hold.timer); dragStart.hold = null; }
+  // Each frame: follow the finger, scroll near the edges, and slide the other cards out of the way.
+  function dragTick() {
+    if (!drag) return;
+    const edge = 90;
+    if (drag.y < edge) scrollBy(0, -Math.ceil((edge - drag.y) / 6));
+    else if (drag.y > innerHeight - edge - 70) scrollBy(0, Math.ceil((drag.y - innerHeight + edge + 70) / 6));
+    const dy = drag.y + scrollY - drag.y0, mid = drag.mids[drag.i] + dy;
+    drag.t = drag.mids.filter((m, j) => j !== drag.i && m < mid).length;
+    drag.cards.forEach((c, j) => {
+      if (j === drag.i) { c.style.transform = `translateY(${dy}px) scale(1.03)`; return; }
+      const shift = j > drag.i && j <= drag.t ? -drag.step : j < drag.i && j >= drag.t ? drag.step : 0;
+      c.style.transform = shift ? `translateY(${shift}px)` : "";
+    });
+    requestAnimationFrame(dragTick);
+  }
+  function dragEnd() {
+    dragCancelHold();
+    if (!drag) return;
+    const { i, t, cards } = drag;
+    drag = null; dragEnd.justDropped = true; setTimeout(() => (dragEnd.justDropped = false), 50);
+    document.body.classList.remove("dragging");
+    cards.forEach((c) => { c.classList.remove("lifted"); c.style.transform = ""; });
+    if (i !== t) {
+      const days = tripDays().map((d) => state.days[d.id] || { park: "", note: "", items: [] });
+      const [moved] = days.splice(i, 1); days.splice(t, 0, moved);
+      days.forEach((doc, k) => { if (doc !== state.days["d" + (k + 1)]) put("days", "d" + (k + 1), doc); });
+      toast(`Moved to Day ${t + 1}`);
+    } else render();
+  }
+  document.addEventListener("pointerdown", dragStart);
+  document.addEventListener("pointermove", dragMove);
+  document.addEventListener("pointerup", dragEnd);
+  document.addEventListener("pointercancel", dragEnd);
+  // While a card is lifted the page mustn't scroll under the finger, and the drop mustn't count as a tap.
+  document.addEventListener("touchmove", (e) => { if (drag) e.preventDefault(); }, { passive: false });
+  document.addEventListener("contextmenu", (e) => { if (e.target.closest(".day") && view.tab === "plan") e.preventDefault(); });
+  document.addEventListener("click", (e) => { if (dragEnd.justDropped) { e.stopPropagation(); e.preventDefault(); } }, true);
   function editSlot(dayId, slotId) {
     const day = state.days[dayId] || { park: "", note: "", items: [] }, items = day.items || [];
     const cur = items.find((x) => x.id === slotId) || { kind: OFF_DAYS.includes(day.park) ? "rest" : "ride", time: "" };
