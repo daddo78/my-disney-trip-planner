@@ -1,0 +1,44 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "site",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "http-server",
+        "-p",
+        "8765",
+        "-c-1",
+        "."
+      ],
+      "port": 8765
+    },
+    {
+      "name": "icons",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "http-server",
+        "-p",
+        "8766",
+        "-c-1",
+        "C:/Users/dande/Downloads/Icons"
+      ],
+      "port": 8766
+    },
+    {
+      "name": "worker",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "--yes",
+        "wrangler@4",
+        "dev",
+        "--port",
+        "8787",
+        "--test-scheduled"
+      ],
+      "port": 8787
+    }
+  ]
+}
