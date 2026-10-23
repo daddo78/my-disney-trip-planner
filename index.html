@@ -175,7 +175,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--surface); border-top: 1px solid var(--line);
   padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
   box-shadow: 0 -4px 18px rgba(13, 28, 46, .08); }
-.tabs nav { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+.tabs nav { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; }
 .tabs button { border: 0; background: transparent; color: var(--muted); display: grid; justify-items: center; gap: 2px; padding: 6px 0; border-radius: 14px; font-size: .64rem; font-weight: 800; white-space: nowrap; min-width: 0; }
 .news { display: grid; gap: 6px; }
 .news a.t { color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 1.08rem; line-height: 1.25; }
@@ -393,11 +393,10 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M12 13.5l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z" fill="currentColor"/></svg>',
     sun: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   };
-  I.news = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 17h3"/></svg>';
   // Park illustrations from our own icon set (icons/parks/). Decorative, so alt is empty; the tab label says what it is.
   const CAL = I.cal.replace("<svg", '<svg class="cal" aria-hidden="true"');
   const art = (name, size) => `<img class="art" src="icons/parks/${name}.svg" alt=""${size ? ` width="${size}" height="${size}"` : ""}>`;
-  const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Compare", art("gold-star")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")], ["news", "News", art("tv-tower")]];
+  const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Compare", art("gold-star")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")]];
   const PARK_ART = { "Magic Kingdom": "castle", EPCOT: "spaceship-earth", "Hollywood Studios": "tower-of-terror", "Animal Kingdom": "tree-of-life", "Disney Springs": "shopping-bag", "Resort & food": "dole-whip", "Anything else": "sorcerer-hat" };
 
   // Light/dark: follows the phone until someone taps the button, then remembers the choice on this device.
@@ -745,7 +744,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const top = `<div class="topbar"><div class="brand"><img class="logo" src="icons/logo.png" alt="" width="51" height="34"><b>Trip Planner</b></div>
       <div class="top-right"><span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span>
       <button class="theme-btn" data-act="theme" aria-label="${isDark() ? "Switch to light mode" : "Switch to dark mode"}">${isDark() ? I.sun.replace(/14/g, "18") : I.moon}</button></div></div>`;
-    const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, todo: todoView, news: newsView }[view.tab]();
+    const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, todo: todoView }[view.tab]();
     // Keep a half-typed pro/con or budget amount when a live update re-renders the page.
     const ae = document.activeElement, ds = ae && ae.dataset ? ae.dataset : {};
     const typing = ds.pcInput ? { sel: `[data-pc-input="${ds.pcInput}"]`, value: ae.value, keepEmpty: false }
@@ -816,6 +815,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
         <div class="row between"><h2>Coming up</h2><button class="btn quiet sm" data-act="tab" data-k="todo">All to-dos</button></div>
         ${todos.length ? todos.map((x) => { const r = relDays(x.d); return `<div class="row between"><div><b>${esc(x.text)}</b><div class="muted small">${fmt(x.d, { month: "long", day: "numeric", year: "numeric" })}</div></div><span class="pill ${r.cls}">${r.text}</span></div>`; }).join("") : `<div class="muted">Nothing dated coming up.</div>`}
       </section>
+      ${newsCard()}
       <section class="card row between"><div><span class="eyebrow">Dream list</span><div><b class="num">${wish.filter((w) => w.done).length}</b> of <b class="num">${wish.length}</b> done</div></div><button class="btn ghost sm" data-act="tab" data-k="dreams">${art("sorcerer-hat", 20)} Open</button></section>`;
   }
 
@@ -1031,25 +1031,68 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   }
 
   // News is fetched by Claude from the sites' RSS feeds and written to the db (the page itself can't reach the internet).
-  function newsView() {
-    const meta = state.ref.news || {};
-    const all = entries("news").sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  // ---------- news (a card on Home, the full list in a pop-up) ----------
+  const ago = (iso) => { const d = new Date(iso); if (isNaN(d)) return ""; const h = Math.round((Date.now() - d) / 36e5); return h < 1 ? "Just now" : h < 24 ? `${h}h ago` : h < 48 ? "Yesterday" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
+  // What a story has to say to count as being about one of our resorts. Specific on purpose:
+  // a plain "Animal Kingdom" is the park, so the Villas only match Kidani, Jambo House or the Lodge.
+  const RESORT_WORDS = [
+    [/boardwalk/i, /boardwalk/i], [/old key west/i, /old key west/i], [/riviera/i, /riviera resort/i],
+    [/animal kingdom villas|kidani|jambo/i, /kidani|jambo house|animal kingdom (lodge|villas)/i], [/bay lake tower/i, /bay lake tower/i],
+    [/grand floridian/i, /grand floridian/i], [/polynesian/i, /polynesian/i], [/fort wilderness/i, /fort wilderness/i],
+    [/port orleans/i, /port orleans/i], [/beach club/i, /beach club/i], [/yacht club/i, /yacht club/i], [/saratoga/i, /saratoga springs/i],
+    [/contemporary/i, /contemporary resort/i], [/caribbean beach/i, /caribbean beach/i], [/coronado/i, /coronado springs/i],
+  ];
+  const escRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // One entry per resort in our options (not the ruled-out ones), with the words that find it in a story.
+  function ourResorts() {
+    const seen = new Set(), out = [];
+    entries("resorts").filter((r) => !r.out && r.name).forEach((r) => {
+      const hit = RESORT_WORDS.find(([name]) => name.test(r.name));
+      const re = hit ? hit[1] : new RegExp(escRe(r.name.split(",")[0].trim()), "i");
+      if (seen.has(re.source)) return;
+      seen.add(re.source); out.push({ name: r.name.split(",")[0].trim(), re });
+    });
+    return out;
+  }
+  function newsItems() {
+    const ours = ourResorts();
+    return entries("news").map((n) => {
+      const text = `${n.title || ""} ${n.summary || ""}`;
+      return { ...n, about: ours.filter((o) => o.re.test(text)).map((o) => o.name) };
+    }).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  }
+  function newsRow(n, short) {
+    return `<article class="news item" style="grid-template-columns:1fr">
+      <div class="row" style="gap:6px">${n.about.map((x) => `<span class="pill good">About ${esc(x)}</span>`).join("")}<span class="pill">${esc(n.source)}</span><span class="muted small">${esc(ago(n.date))}</span></div>
+      <a class="t" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>
+      ${n.summary && !short ? `<div class="muted small">${esc(n.summary)}</div>` : ""}</article>`;
+  }
+  // Home: news about our resorts first, then the newest, three in all.
+  function newsCard() {
+    const all = newsItems(); if (!all.length) return "";
+    const top = [...all.filter((n) => n.about.length), ...all.filter((n) => !n.about.length)].slice(0, 3);
+    return `<section class="card stack"><div class="row between"><h2>Disney news</h2>${art("tv-tower", 32)}</div>
+      <div class="list">${top.map((n) => newsRow(n, true)).join("")}</div>
+      <div><button class="btn ghost sm" data-act="news-more">More news (${all.length})</button></div></section>`;
+  }
+  function showNews() {
+    const meta = state.ref.news || {}, all = newsItems();
     const tags = [...new Set(all.flatMap((n) => n.tags || []))];
-    const tag = tags.includes(view.newsTag) ? view.newsTag : "all";
-    const list = tag === "all" ? all : all.filter((n) => (n.tags || []).includes(tag));
-    const ago = (iso) => { const d = new Date(iso); if (isNaN(d)) return ""; const h = Math.round((Date.now() - d) / 36e5); return h < 1 ? "Just now" : h < 24 ? `${h}h ago` : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
+    const anyOurs = all.some((n) => n.about.length);
+    const tag = tags.includes(view.newsTag) || (view.newsTag === "ours" && anyOurs) ? view.newsTag : "all";
+    const list = tag === "all" ? all : tag === "ours" ? all.filter((n) => n.about.length) : all.filter((n) => (n.tags || []).includes(tag));
     const chip = (k, label) => `<button class="chip" data-act="news-tag" data-k="${esc(k)}" aria-pressed="${tag === k}">${esc(label)}</button>`;
-    return `<div class="row between"><h2>Disney World news</h2></div>
-      <div class="muted small">Latest Walt Disney World stories${meta.updated ? `, updated ${esc(new Date(meta.updated).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}` : ""}. Tap a headline to read it on the site.</div>
-      ${tags.length ? `<div class="toolbar" role="group" aria-label="Filter news">${chip("all", "All")}${tags.map((x) => chip(x, x)).join("")}</div>` : ""}
-      ${list.length ? `<section class="card"><div class="list">${list.map((n) => `<article class="news item" style="grid-template-columns:1fr">
-          <div class="row" style="gap:6px"><span class="pill">${esc(n.source)}</span><span class="muted small">${esc(ago(n.date))}</span></div>
-          <a class="t" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>
-          ${n.summary ? `<div class="muted small">${esc(n.summary)}</div>` : ""}
-          ${(n.tags || []).length ? `<div class="tags">${n.tags.map((x) => `<span class="pill plain">${esc(x)}</span>`).join("")}</div>` : ""}
-        </article>`).join("")}</div></section>`
-        : `<div class="card empty"><h3>No news yet</h3><div>Stories show up here once Claude loads the latest headlines.</div></div>`}
-      ${meta.sources ? `<div class="src">Sources (RSS feeds): ${meta.sources.map((x) => link(x.url, x.name)).join(", ")}. Only Walt Disney World stories are kept.</div>` : ""}`;
+    const root = document.getElementById("sheet-root"), keep = root.querySelector(".sheet");
+    const scroll = keep ? keep.scrollTop : 0;
+    root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="Disney World news" style="animation:${keep ? "none" : ""}">
+      <div class="sheet-head"><div><h2>Disney World news</h2>${meta.updated ? `<div class="muted small">Updated ${esc(new Date(meta.updated).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}. Tap a headline to read it.</div>` : ""}</div>
+        <button type="button" class="icon-btn" data-close aria-label="Close">${I.x}</button></div>
+      <div class="toolbar" role="group" aria-label="Filter news">${chip("all", "All")}${anyOurs ? chip("ours", "Our resorts") : ""}${tags.map((x) => chip(x, x)).join("")}</div>
+      <div class="list">${list.map((n) => newsRow(n)).join("") || `<div class="muted">Nothing here right now.</div>`}</div>
+      ${meta.sources ? `<div class="src">Sources (RSS feeds): ${meta.sources.map((x) => link(x.url, x.name)).join(", ")}. Only Walt Disney World stories are kept, refreshed every morning.</div>` : ""}</div></div>`;
+    const sheet = root.querySelector(".sheet"); sheet.scrollTop = scroll;
+    const btn = root.querySelector("[data-close]"); btn.onclick = closeSheet;
+    if (!keep) setTimeout(() => btn.focus(), 30);
   }
 
   // ---------- sheet (edit forms) ----------
@@ -1190,7 +1233,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       setCmpIds(i >= 0 ? ids.filter((x) => x !== id) : [...ids, id].slice(-3)); return;
     }
     if (act === "receipt") { showReceipt(id); return; }
-    if (act === "news-tag") { view.newsTag = el.dataset.k; render(); return; }
+    if (act === "news-tag") { view.newsTag = el.dataset.k; showNews(); return; }
+    if (act === "news-more") { view.newsTag = "all"; showNews(); return; }
     if (!canWrite) return;
     if (act === "pc-add") {
       const key = el.dataset.key, kind = el.dataset.kind, input = el.parentElement.querySelector("[data-pc-input]"), text = input ? input.value.trim() : "";
