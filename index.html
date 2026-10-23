@@ -188,6 +188,8 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 /* scores, stars & compare */
 .score { flex: none; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; align-content: center; background: var(--tone-soft); color: var(--tone);
   font-family: var(--display); font-weight: 600; font-size: 1.35rem; line-height: 1; border: 3px solid var(--tone); }
+button.score { cursor: pointer; padding: 0; font-family: var(--display); font-weight: 600; }
+button.score[aria-expanded="true"] { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--tone); }
 .score small { font-family: var(--body); font-size: .55rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .score.none { --tone: var(--line); --tone-soft: var(--surface-2); color: var(--muted); font-size: .7rem; text-align: center; }
 .resort .head .who { display: flex; gap: 12px; align-items: center; min-width: 0; }
@@ -297,7 +299,6 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     other: { label: "Other", color: "var(--c-other)" },
   };
   const PARKS = ["Magic Kingdom", "EPCOT", "Hollywood Studios", "Animal Kingdom", "Disney Springs", "Resort & food", "Anything else"];
-  const SOURCES = ["DVC rental", "Disney direct", "Other"];
   const COLLS = ["trip", "resorts", "budget", "wishes", "todos", "dvc", "ref", "proscons", "news"];
 
   // Built-in copy of the reference data. The shared db holds the live copy (dvc/<resort>, ref/seasons2027, ref/weather);
@@ -356,7 +357,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   let mode = "starting"; // "shared" | "local"
   let db = null, userCap = null, me = "me", canWrite = true;
   let names = {};
-  const view = { tab: "home", filter: "all", sort: "score", cmpIds: null, newsTag: "all" };
+  const view = { tab: "home", filter: "all", sort: "score", cmpIds: null, newsTag: "all", receipts: new Set() };
   const LS_KEY = "our-disney-trip-v1";
 
   // ---------- helpers ----------
@@ -654,10 +655,14 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     return { parts, wx, overall, rated: !!stars, left: room - total };
   }
   const scoreTone = (n) => (n == null ? "" : n >= 90 ? "good" : n >= 60 ? "warn" : "bad");
-  function scoreBadge(n) {
-    if (n == null) return `<div class="score none" title="Rate it with stars to get points">Rate it</div>`;
-    const tone = scoreTone(n);
-    return `<div class="score" style="--tone:var(--${tone});--tone-soft:var(--${tone}-soft)" aria-label="${n} points">${n}<small>pts</small></div>`;
+  // With an option id, the badge is a button that opens that option's receipt.
+  function scoreBadge(n, id) {
+    const tone = scoreTone(n), open = !!id && view.receipts.has(id);
+    const inner = n == null ? "Rate it" : `${n}<small>pts</small>`;
+    const style = n == null ? "" : `style="--tone:var(--${tone});--tone-soft:var(--${tone}-soft)"`;
+    const cls = `score${n == null ? " none" : ""}`;
+    if (!id) return `<div class="${cls}" ${style} ${n == null ? 'title="Rate it with stars to get points"' : `aria-label="${n} points"`}>${inner}</div>`;
+    return `<button type="button" class="${cls}" ${style} data-act="receipt" data-id="${esc(id)}" aria-expanded="${open}" aria-label="${n == null ? "Not rated yet" : n + " points"}. Show how it adds up">${inner}</button>`;
   }
   // The receipt: where every point came from.
   function receiptHTML(sc) {
@@ -838,18 +843,17 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       const n = nights(r.start, r.end), picked = s.pickId === r.id, sc = r.sc;
       const diffDates = r.start !== s.start || r.end !== s.end;
       return `<article class="card resort ${picked ? "picked" : ""}">
-        <div class="head"><div class="who">${scoreBadge(sc.overall)}<div style="min-width:0">
+        <div class="head"><div class="who">${scoreBadge(sc.overall, r.id)}<div style="min-width:0">
           ${picked ? `<span class="pill picked-badge">Our pick</span> ` : ""}<h3 style="display:inline">${esc(r.name)}</h3>
           <div class="muted small">${esc(r.room)}${r.vibe ? " · " + esc(r.vibe) : ""}</div></div></div>
           <div class="price"><strong class="num">${Number(r.total) ? money(r.total) : "–"}</strong><span class="muted small num">${Number(r.total) ? money(per(r)) + "/night" : "Add a price"}</span></div></div>
         <div class="row between"><span class="pill ${diffDates ? "warn" : "plain"}">${esc(span(r.start, r.end))} · ${n} nights</span>${seasonIcons(r.start, r.end)}</div>
         ${wxLine(sc.wx)}
         <div class="row between"><span class="small" style="font-weight:800">${esc(DESIRE[Number(r.desire) || 0])}</span>${starsHTML(r)}</div>
-        ${receiptHTML(sc)}
+        ${view.receipts.has(r.id) ? receiptHTML(sc) : ""}
         ${Number(r.total) ? stayMeter(Number(r.total), t.room) : ""}
         ${perksOf(r).length ? `<div class="stack" style="gap:6px"><span class="eyebrow">Perks</span><div class="tags">${tagPills(perksOf(r), "good")}</div></div>` : ""}
         ${amenitiesOf(r).length ? `<div class="stack" style="gap:6px"><span class="eyebrow">Amenities</span><div class="tags">${tagPills(amenitiesOf(r), "plain")}</div></div>` : ""}
-        ${r.source ? `<div class="muted small">Found through ${esc(r.source)}</div>` : ""}
         ${r.notes ? `<div class="note quote">${esc(r.notes)}</div>` : ""}
         ${prosConsHTML(r.name)}
         ${Number(r.total) ? `<div class="soft small">Against the ${money(t.room)} for a resort, this ${sc.left >= 0 ? `leaves <b style="color:var(--good)">${money(sc.left)}</b> to spare` : `goes <b style="color:var(--bad)">${money(-sc.left)} over</b>`}.</div>` : ""}
@@ -908,7 +912,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     // One row per thing to compare. best: "high" or "low" marks the winner when there's more than one option.
     const perNight = (r) => (Number(r.total) || 0) / (nights(r.start, r.end) || 1);
     const rows = [
-      ["Points", (r) => r.sc.overall, "high", (r) => scoreBadge(r.sc.overall)],
+      ["Points", (r) => r.sc.overall, "high", (r) => scoreBadge(r.sc.overall, r.id) + (view.receipts.has(r.id) ? receiptHTML(r.sc) : "")],
       ["Total price", (r) => Number(r.total) || null, "low", (r) => `<strong class="num">${Number(r.total) ? money(r.total) : "–"}</strong>`],
       ["Per night", (r) => (Number(r.total) ? perNight(r) : null), "low", (r) => `<span class="num">${Number(r.total) ? money(perNight(r)) : "–"}</span>`],
       ["Budget", (r) => (Number(r.total) ? r.sc.left : null), "high", (r) => Number(r.total) ? `<span class="small" style="font-weight:800;color:var(--${r.sc.left >= 0 ? "good" : "bad"})">${r.sc.left >= 0 ? `${money(r.sc.left)} under` : `${money(-r.sc.left)} over`}</span>${stayMeter(Number(r.total), t.room, true)}` : "–"],
@@ -1088,17 +1092,16 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     { k: "start", label: "Check-in", type: "date" },
     { k: "end", label: "Check-out", type: "date" },
     { k: "total", label: "Total price ($)", type: "number" },
-    { k: "source", label: "Found it through", list: [...new Set([...SOURCES, ...entries("resorts").map((r) => r.source)].filter(Boolean))].sort(), placeholder: "DVC rental site, Costco Travel…" },
     { k: "desire", label: "How much do we want it?", type: "select", full: true, options: DESIRE.map((d, i) => [String(i), i ? `${"★".repeat(i)}${"☆".repeat(5 - i)}  ${d}` : d]) },
     { k: "perks", label: "Perks (separate with commas)", full: true, placeholder: "Walk to EPCOT, Extended evening hours, Boat to the parks" },
     { k: "amenities", label: "Amenities (separate with commas)", full: true, placeholder: "Kitchenette, 2 showers, Sleeps 5, Great pool" },
     { k: "vibe", label: "Vibe", full: true, placeholder: "Florida beach, Italy…" },
-    { k: "notes", label: "Notes", type: "textarea", full: true },
+    { k: "notes", label: "Notes", type: "textarea", full: true, placeholder: "Where you found the deal, the view you want…" },
     { k: "out", label: "Ruled out", type: "check", full: true },
   ];
   function editResort(id) {
     const s = settings();
-    const cur = id ? state.resorts[id] : { source: "DVC rental", start: s.start, end: s.end, desire: 0, hearts: [], perks: [], amenities: [] };
+    const cur = id ? state.resorts[id] : { start: s.start, end: s.end, desire: 0, hearts: [], perks: [], amenities: [] };
     openSheet(id ? "Edit option" : "Add a resort option", RESORT_FIELDS(),
       { ...cur, desire: String(Number(cur.desire) || 0), perks: perksOf(cur).join(", "), amenities: amenitiesOf(cur).join(", ") },
       (v) => {
@@ -1171,6 +1174,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       const ids = cmpIds(rankedOptions()), i = ids.indexOf(id);
       setCmpIds(i >= 0 ? ids.filter((x) => x !== id) : [...ids, id].slice(-3)); return;
     }
+    if (act === "receipt") { if (view.receipts.has(id)) view.receipts.delete(id); else view.receipts.add(id); render(); return; }
     if (act === "news-tag") { view.newsTag = el.dataset.k; render(); return; }
     if (!canWrite) return;
     if (act === "pc-add") {
