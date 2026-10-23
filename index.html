@@ -583,8 +583,8 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     return rain + hur;
   }
   // Overall score, 0–100: a weighted average of how much we want it, price, and weather. Missing parts are left out.
-  const SCORE_W = { desire: 3, price: 3, weather: 2 };
-  const FACTORS = [["desire", "Want it"], ["price", "Price"], ["weather", "Weather"]];
+  const SCORE_W = { desire: 4, price: 4, weather: 2 };
+  const FACTORS = [["desire", "Want it"], ["price", "Price"], ["weather", "Heat"]];
   const weights = () => ({ ...SCORE_W, ...(settings().scoreW || {}) });
   const clamp01 = (x) => Math.max(0, Math.min(1, x));
   function scoreOf(r, t) {
@@ -594,9 +594,9 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     // 100 if it uses 60% or less of the money left for a resort, 0 once it's 75% over. Wide on purpose:
     // most quotes run over what's left, and they still need to spread out.
     if (total > 0) parts.price = room > 0 ? clamp01((1.75 - total / room) / 1.15) * 100 : 0;
-    // Average high: 100 at 80° or cooler, 0 at 92°. Rain chance: 100 at 15% or less, 0 at 65%.
+    // Heat is what we care about, so only the average high counts: 100 at 80° or cooler, 0 at 90°. Rain is shown, not scored.
     const wx = weatherFor(r.start, r.end);
-    if (wx && wx.known.length) parts.weather = ((clamp01((92 - wx.hiAvg) / 12) + clamp01((65 - wx.rainAvg) / 50)) / 2) * 100;
+    if (wx && wx.known.length) parts.weather = clamp01((90 - wx.hiAvg) / 10) * 100;
     let sum = 0, wsum = 0;
     Object.keys(parts).forEach((k) => { sum += parts[k] * W[k]; wsum += W[k]; });
     return { parts, wx, overall: wsum ? Math.round(sum / wsum) : null, left: room - total };
@@ -833,7 +833,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   // How the score and seasons are worked out, with sources. Shown under both tabs.
   function scoreHow() {
     const w = weather();
-    return `Score: how much you want it, price (100 if it uses 60% or less of the money left for a resort after the other budget lines, 0 once it's 75% over) and weather (cooler highs and less rain score higher), weighted on the Compare tab.
+    return `Score: how much you want it, price (100 if it uses 60% or less of the money left for a resort after the other budget lines, 0 once it's 75% over) and heat (the average high: 100 at 80° or cooler, 0 at 90°; rain is shown but not scored), weighted on the Compare tab.
       Weather: ${link(w.url, w.source)}, ${esc(w.years)} averages, not a forecast. Rainy season: ${link(SEASONS.rainy.url, SEASONS.rainy.source)}. Hurricane season: ${link(SEASONS.hurricane.url, SEASONS.hurricane.source)}.`;
   }
 
