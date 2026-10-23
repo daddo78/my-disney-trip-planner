@@ -189,6 +189,10 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .score { flex: none; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; align-content: center; background: var(--tone-soft); color: var(--tone);
   font-family: var(--display); font-weight: 600; font-size: 1.35rem; line-height: 1; border: 3px solid var(--tone); }
 button.score { cursor: pointer; padding: 0; font-family: var(--display); font-weight: 600; }
+/* Pop-ups with a pinned header: the sheet's top padding moves into the header so it covers what scrolls under it. */
+.sheet.pinned { padding-top: 0; }
+.sheet-top { position: sticky; top: 0; z-index: 2; background: var(--surface); display: grid; gap: 12px; padding: 20px 0 10px; margin-bottom: -4px; border-bottom: 1px solid transparent; transition: border-color .15s; }
+.sheet-top.scrolled { border-bottom-color: var(--line); }
 .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .sheet-head > div { min-width: 0; }
 .sheet-head .icon-btn { flex: none; }
@@ -1084,13 +1088,13 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const chip = (k, label) => `<button class="chip" data-act="news-tag" data-k="${esc(k)}" aria-pressed="${tag === k}">${esc(label)}</button>`;
     const root = document.getElementById("sheet-root"), keep = root.querySelector(".sheet");
     const scroll = keep ? keep.scrollTop : 0;
-    root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="Disney World news" style="animation:${keep ? "none" : ""}">
-      <div class="sheet-head"><div><h2>Disney World news</h2>${meta.updated ? `<div class="muted small">Updated ${esc(new Date(meta.updated).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}. Tap a headline to read it.</div>` : ""}</div>
+    root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet pinned" role="dialog" aria-modal="true" aria-label="Disney World news" style="animation:${keep ? "none" : ""}">
+      <div class="sheet-top"><div class="sheet-head"><div><h2>Disney World news</h2>${meta.updated ? `<div class="muted small">Updated ${esc(new Date(meta.updated).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}. Tap a headline to read it.</div>` : ""}</div>
         <button type="button" class="icon-btn" data-close aria-label="Close">${I.x}</button></div>
-      <div class="toolbar" role="group" aria-label="Filter news">${chip("all", "All")}${anyOurs ? chip("ours", "Our resorts") : ""}${tags.map((x) => chip(x, x)).join("")}</div>
+      <div class="toolbar" role="group" aria-label="Filter news">${chip("all", "All")}${anyOurs ? chip("ours", "Our resorts") : ""}${tags.map((x) => chip(x, x)).join("")}</div></div>
       <div class="list">${list.map((n) => newsRow(n)).join("") || `<div class="muted">Nothing here right now.</div>`}</div>
       ${meta.sources ? `<div class="src">Sources (RSS feeds): ${meta.sources.map((x) => link(x.url, x.name)).join(", ")}. Only Walt Disney World stories are kept, refreshed every morning.</div>` : ""}</div></div>`;
-    const sheet = root.querySelector(".sheet"); sheet.scrollTop = scroll;
+    const sheet = root.querySelector(".sheet"); sheet.scrollTop = scroll; pinTop(sheet);
     const btn = root.querySelector("[data-close]"); btn.onclick = closeSheet;
     if (!keep) setTimeout(() => btn.focus(), 30);
   }
@@ -1130,13 +1134,19 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (del) del.onclick = () => { if (!armed) { armed = true; del.textContent = "Tap again to delete"; del.style.color = "var(--bad)"; return; } onDelete(); closeSheet(); };
     setTimeout(() => { const first = form.querySelector("input,select,textarea"); if (first && matchMedia("(pointer:fine)").matches) first.focus(); }, 30);
   }
+  function pinTop(sheet) {
+    const top = sheet.querySelector(".sheet-top"); if (!top) return;
+    const mark = () => top.classList.toggle("scrolled", sheet.scrollTop > 2);
+    sheet.addEventListener("scroll", mark, { passive: true }); mark();
+  }
   function showReceipt(id) {
     const r = rankedOptions().find((x) => x.id === id); if (!r) return;
     const root = document.getElementById("sheet-root");
-    root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="How ${esc(r.name)}'s points add up">
-      <div class="sheet-head"><div><h2>${esc(r.name)}</h2><div class="muted small">${esc(r.room || "")}</div><div class="muted small">${CAL}${esc(span(r.start, r.end))}</div></div>
-        <button type="button" class="icon-btn" data-close aria-label="Close">${I.x}</button></div>
+    root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet pinned" role="dialog" aria-modal="true" aria-label="How ${esc(r.name)}'s points add up">
+      <div class="sheet-top"><div class="sheet-head"><div><h2>${esc(r.name)}</h2><div class="muted small">${esc(r.room || "")}</div><div class="muted small">${CAL}${esc(span(r.start, r.end))}</div></div>
+        <button type="button" class="icon-btn" data-close aria-label="Close">${I.x}</button></div></div>
       ${receiptHTML(r.sc)}</div></div>`;
+    pinTop(root.querySelector(".sheet"));
     const btn = root.querySelector("[data-close]");
     btn.onclick = closeSheet;
     setTimeout(() => btn.focus(), 30);
