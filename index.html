@@ -1084,7 +1084,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     { k: "start", label: "Check-in", type: "date" },
     { k: "end", label: "Check-out", type: "date" },
     { k: "total", label: "Total price ($)", type: "number" },
-    { k: "source", label: "Found it through", type: "select", options: SOURCES },
+    { k: "source", label: "Found it through", list: [...new Set([...SOURCES, ...entries("resorts").map((r) => r.source)].filter(Boolean))].sort(), placeholder: "DVC rental site, Costco Travel…" },
     { k: "desire", label: "How much do we want it?", type: "select", full: true, options: DESIRE.map((d, i) => [String(i), i ? `${"★".repeat(i)}${"☆".repeat(5 - i)}  ${d}` : d]) },
     { k: "perks", label: "Perks (separate with commas)", full: true, placeholder: "Walk to EPCOT, Extended evening hours, Boat to the parks" },
     { k: "amenities", label: "Amenities (separate with commas)", full: true, placeholder: "Kitchenette, 2 showers, Sleeps 5, Great pool" },
