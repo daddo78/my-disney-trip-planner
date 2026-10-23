@@ -13,7 +13,7 @@ Live at **https://dtp.ondorilabo.com**. Both phones see the same plan, and chang
 - **Food**: meals and snacks by park, plus resort meals and room meals, each with an optional meal (breakfast, lunch, dinner, snack) and note.
 - **To-do**: booking windows and reminders, dated by counting back from check-in.
 - **News**: the full Disney World news list with filters (also a card on Home).
-- **My Trips**: more than one trip, each with its own name, who's going (names, how they're related, and ages for kids) and its own resorts, budget, plan, dreams, food and to-dos. Start a new one, open one, edit any trip (name, dates, budget), or delete one you're not in. Each phone remembers which trip it has open.
+- **My Trips**: more than one trip, each with its own name, who's going (names and how they're related) and its own resorts, budget, plan, dreams, food and to-dos. Start a new one, open one, edit any trip (name, dates, budget), or delete one you're not in. Each phone remembers which trip it has open.
 - The bar shows five tabs plus **More**, like Teams; Reorder in More picks which five (saved per phone).
 
 ## How it's built

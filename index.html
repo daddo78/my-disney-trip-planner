@@ -312,8 +312,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
 .sheet .grab { width: 44px; height: 5px; border-radius: 3px; background: var(--line); justify-self: center; }
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .people { display: grid; gap: 8px; }
-.person { display: grid; grid-template-columns: 1fr 76px auto; grid-template-areas: "name name del" "rel age ."; gap: 8px; align-items: center; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
-.person [data-p="name"] { grid-area: name; } .person [data-p="rel"] { grid-area: rel; } .person [data-p="age"] { grid-area: age; } .person .icon-btn { grid-area: del; }
+.person { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "name del" "rel ."; gap: 8px; align-items: center; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
+.person [data-p="name"] { grid-area: name; } .person [data-p="rel"] { grid-area: rel; } .person .icon-btn { grid-area: del; }
 .person input { width: 100%; min-width: 0; border: 2px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
 .trip-card.on { box-shadow: 0 0 0 3px var(--accent), var(--shadow); }
 .hero .who { margin-top: 6px; font-weight: 800; }
@@ -439,12 +439,13 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   const tripIds = () => ["main", ...Object.keys(state.trips).filter((k) => k !== "main")];
   const tripDoc = (id = tripId) => ({ name: id === "main" ? "Our Disney Trip" : "New trip", people: [], ...(state.trips[id] || {}) });
   const settingsOf = (id) => (id === tripId ? settings() : { ...DEFAULTS, ...tripSettings(id) });
-  // Who's going: people with no age, or 18 and up, count as adults. Without a list, the old counts in the settings.
+  // Who's going. No adult/kid split on purpose: Disney tickets count 10+ as adults, resorts 18+, so a head count is all we show.
+  // Without a list, the old adults + kids counts in the settings.
   function party(id = tripId) {
     const people = tripDoc(id).people || [];
-    if (!people.length) { const s = settingsOf(id), adults = Number(s.adults) || 0, kids = Number(s.kids) || 0; return { people, adults, kids, count: adults + kids }; }
-    const kids = people.filter((p) => p.age !== "" && p.age != null && Number(p.age) < 18).length;
-    return { people, adults: people.length - kids, kids, count: people.length };
+    if (people.length) return { people, count: people.length };
+    const s = settingsOf(id);
+    return { people, count: (Number(s.adults) || 0) + (Number(s.kids) || 0) };
   }
   // Suggestions for "Relationship" on Who's going; she can type anything.
   const RELATIONS = ["Me", "Husband", "Wife", "Partner", "Daughter", "Son", "Mom", "Dad", "Grandma", "Grandpa", "Sister", "Brother", "Aunt", "Uncle", "Cousin", "Niece", "Nephew", "Friend"];
@@ -936,7 +937,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
         <h1>${esc(tripDoc().name)}</h1>
         <div class="count">${count}</div>
         ${who.people.length ? `<div class="who">${esc(nameList(who.people))}</div>` : ""}
-        <div class="meta"><span class="pill">${esc(span(s.start, s.end))}</span><span class="pill">${n} nights</span>${canWrite ? `<button class="pill" data-act="edit-people" data-id="${tripId}" aria-label="Who's going">` : `<span class="pill">`}${who.adults} adult${who.adults === 1 ? "" : "s"} · ${who.kids} kid${who.kids === 1 ? "" : "s"}${canWrite ? "</button>" : "</span>"}${wx && wx.known.length ? `<span class="pill">${I.sun} Usually ${wx.hiMax}° / ${wx.loMin}°</span>` : ""}</div>
+        <div class="meta"><span class="pill">${esc(span(s.start, s.end))}</span><span class="pill">${n} nights</span>${canWrite ? `<button class="pill" data-act="edit-people" data-id="${tripId}" aria-label="Who's going">` : `<span class="pill">`}${who.count} going${canWrite ? "</button>" : "</span>"}${wx && wx.known.length ? `<span class="pill">${I.sun} Usually ${wx.hiMax}° / ${wx.loMin}°</span>` : ""}</div>
         <div class="perf"></div>
       </section>
       <section class="card stack">
@@ -1562,8 +1563,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       return `<section class="card stack trip-card ${on ? "on" : ""}">
         <div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><div><h3>${esc(d.name)}</h3><div class="muted small">${CAL}${esc(span(s.start, s.end))}${n ? ` · ${n} nights` : ""}</div></div>
           ${on ? `<span class="pill good">Open now</span>` : `<button class="btn sm" data-act="open-trip" data-id="${id}">Open</button>`}</div>
-        <div class="row" style="gap:6px">${p.people.length ? p.people.map((x) => `<span class="pill plain">${esc(x.name)}${x.rel ? ` · ${esc(x.rel)}` : ""}${x.age !== "" && x.age != null ? ` · ${esc(x.age)}` : ""}</span>`).join("")
-          : `<span class="muted small">${p.count ? `${p.adults} adults · ${p.kids} kids` : "No one added yet"}</span>`}</div>
+        <div class="row" style="gap:6px">${p.people.length ? p.people.map((x) => `<span class="pill plain">${esc(x.name)}${x.rel ? ` · ${esc(x.rel)}` : ""}</span>`).join("")
+          : `<span class="muted small">${p.count ? `${p.count} going` : "No one added yet"}</span>`}</div>
         ${canWrite ? `<div class="row" style="gap:8px"><button class="btn ghost sm" data-act="edit-people" data-id="${id}">Who's going</button><button class="btn quiet sm" data-act="edit-trip" data-id="${id}">${I.pencil} Edit</button></div>` : ""}
       </section>`;
     };
@@ -1581,7 +1582,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       const was = party(), id = "t" + Date.now().toString(36);
       put("trips", id, { name: v.name, people: was.people.map((p) => ({ ...p })), created: new Date().toISOString() });
       switchTrip(id);
-      setSettings({ start: v.start, end: v.end, budget: v.budget, adults: was.adults, kids: was.kids });
+      setSettings({ start: v.start, end: v.end, budget: v.budget, adults: was.count, kids: 0 });
       view.tab = "home"; store.set(LS_KEY + ":tab", "home"); render(); window.scrollTo({ top: 0 });
       setTimeout(() => editPeople(id), 0);
     });
@@ -1595,21 +1596,20 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     });
     toast("Trip deleted.");
   }
-  // Who's going: a name and (for kids) an age on the trip, one row each. Nothing saves until Done.
+  // Who's going: a name and a relationship, one row each. Nothing saves until Done.
   let peopleDraft = null;
   function editPeople(id, rows) {
     const doc = tripDoc(id);
     peopleDraft = { id, rows: rows || (doc.people || []).map((p) => ({ ...p })) };
-    if (!peopleDraft.rows.length) peopleDraft.rows.push({ name: "", rel: "", age: "" });
+    if (!peopleDraft.rows.length) peopleDraft.rows.push({ name: "", rel: "" });
     const root = document.getElementById("sheet-root"), keep = root.querySelector(".sheet");
     root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet pinned" role="dialog" aria-modal="true" aria-label="Who's going" style="animation:${keep ? "none" : ""}">
       <div class="sheet-top"><div class="sheet-head"><div><h2>Who's going</h2><div class="muted small">${esc(doc.name)}</div></div><div class="row" style="gap:8px;flex-wrap:nowrap">
         <button type="button" class="btn ghost sm" data-cancel>Cancel</button><button type="button" class="btn sm" data-act="people-save">Done</button></div></div></div>
-      <div class="muted small">Add how each person is related to you, and an age (on the trip) for the kids. Leave the age blank for grown-ups.</div>
+      <div class="muted small">Add each person and how they're related to you.</div>
       <div class="people">${peopleDraft.rows.map((p, i) => `<div class="person">
         <input data-p="name" data-i="${i}" value="${esc(p.name)}" placeholder="Name" aria-label="Name" autocomplete="off">
         <input data-p="rel" data-i="${i}" value="${esc(p.rel || "")}" placeholder="Relationship" aria-label="Relationship" list="rel-list" autocomplete="off">
-        <input data-p="age" data-i="${i}" type="number" inputmode="numeric" min="0" max="120" value="${esc(p.age ?? "")}" placeholder="Age" aria-label="Age">
         <button type="button" class="icon-btn" data-act="person-del" data-n="${i}" aria-label="Remove ${esc(p.name || "this person")}">${I.x}</button></div>`).join("")}</div>
       <datalist id="rel-list">${RELATIONS.map((r) => `<option value="${r}"></option>`).join("")}</datalist>
       <div><button type="button" class="btn ghost sm" data-act="person-add">${I.plus} Add someone</button></div></div></div>`;
@@ -1621,7 +1621,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     return peopleDraft.rows;
   }
   function savePeople() {
-    const people = readPeople().filter((p) => p.name).map((p) => ({ name: p.name, rel: p.rel || "", age: p.age === "" ? "" : Number(p.age) }));
+    const people = readPeople().filter((p) => p.name).map((p) => ({ name: p.name, rel: p.rel || "" }));
     put("trips", peopleDraft.id, { ...tripDoc(peopleDraft.id), people });
     closeSheet();
   }
@@ -1724,7 +1724,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "edit-trip") return editTrip(id);
     if (act === "add-trip") return newTrip();
     if (act === "edit-people") return editPeople(id);
-    if (act === "person-add") { const rows = readPeople(); editPeople(peopleDraft.id, [...rows, { name: "", rel: "", age: "" }]); const ins = document.querySelectorAll('#sheet-root [data-p="name"]'); ins[ins.length - 1].focus(); return; }
+    if (act === "person-add") { const rows = readPeople(); editPeople(peopleDraft.id, [...rows, { name: "", rel: "" }]); const ins = document.querySelectorAll('#sheet-root [data-p="name"]'); ins[ins.length - 1].focus(); return; }
     if (act === "person-del") { const rows = readPeople(); rows.splice(Number(el.dataset.n), 1); editPeople(peopleDraft.id, rows); return; }
     if (act === "people-save") return savePeople();
     if (act === "add-resort" || act === "edit-resort") return editResort(id);
