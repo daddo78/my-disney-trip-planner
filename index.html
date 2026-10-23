@@ -676,7 +676,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       <div class="total"><span>Total</span><b>${sc.overall} pts</b></div></div>`;
   }
   const STAR = '<svg viewBox="0 0 24 24"><path fill="currentColor" stroke="transparent" stroke-width="1.5" stroke-linejoin="round" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>';
-  const DESIRE = ["Not rated yet", "Meh", "It's okay", "Would be nice", "Really want it", "Dream stay!"];
+  const DESIRE = ["Rate your desire to stay here", "Meh", "It's okay", "Would be nice", "Really want it", "Dream stay!"];
   function starsHTML(r, small) {
     const n = Number(r.desire) || 0;
     if (small || !canWrite) return `<span class="stars sm" role="img" aria-label="${n ? `${n} of 5 stars` : "Not rated"}">${[1, 2, 3, 4, 5].map((i) => `<button type="button" tabindex="-1" disabled class="${i <= n ? "on" : ""}">${STAR}</button>`).join("")}</span>`;
