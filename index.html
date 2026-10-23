@@ -197,13 +197,11 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .stars button.on { color: var(--c-food); }
 .stars button.on path { stroke: var(--warn); }
 .stars.sm button { padding: 1px; } .stars.sm button svg { width: 16px; height: 16px; }
-.factors { display: grid; gap: 6px; }
-.factor { display: grid; grid-template-columns: 64px 1fr 34px; gap: 8px; align-items: center; font-size: .82rem; font-weight: 700; }
-.factor b { text-align: right; font-variant-numeric: tabular-nums; }
-.dots { display: inline-flex; gap: 6px; }
-.dots button { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--accent); background: transparent; padding: 0; }
-.dots button.on { background: var(--accent); }
-.weights .factor { grid-template-columns: 76px 1fr; }
+.receipt { display: grid; gap: 2px; background: var(--surface-2); border-radius: 14px; padding: 10px 12px; border: 2px dashed var(--line); font-size: .9rem; }
+.receipt > div { display: flex; justify-content: space-between; gap: 10px; }
+.receipt b { font-variant-numeric: tabular-nums; flex: none; }
+.receipt .plus { color: var(--good); } .receipt .minus { color: var(--bad); }
+.receipt .total { border-top: 2px dashed var(--line); margin-top: 4px; padding-top: 6px; font-family: var(--display); font-size: 1.05rem; font-weight: 600; }
 .rank { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; width: 100%; text-align: left; border: 2px solid var(--line);
   background: var(--surface); border-radius: 14px; padding: 8px 10px; }
 .rank[aria-pressed="true"] { border-color: var(--opt, var(--accent)); background: var(--surface-2); }
@@ -624,36 +622,48 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     return p;
   }
   const tagPills = (tags, cls) => tags.map((x) => `<span class="pill ${cls}">${esc(x)}</span>`).join("");
-  // Overall score, 0–100: a weighted average of how much we want it, price, and weather. Missing parts are left out.
-  const SCORE_W = { desire: 4, price: 4, weather: 2 };
-  const FACTORS = [["desire", "Want it"], ["price", "Price"], ["weather", "Heat"]];
-  const weights = () => ({ ...SCORE_W, ...(settings().scoreW || {}) });
-  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  // Points: everything she enters trades against everything else at a fixed rate, so 1 star = 4 nights,
+  // $100 over the resort budget = −2, and so on. No ceiling; a near-perfect option lands around 130.
+  // Rainy and hurricane season aren't scored: every late-September date has both, so they'd shift every option alike.
+  const PTS = {
+    star: 12, night: 3, maxNights: 14,
+    under: 1, maxUnder: 10, over: 2,          // per $100 under / over the resort budget
+    hotFrom: 82, perDegree: 3,                // per degree the usual high averages above 82°
+    perk: 3, maxPerks: 4, amenity: 1, maxAmenities: 6,
+    maxProsCons: 5,                           // +1 per pro, −1 per con, net capped either way
+  };
   function scoreOf(r, t) {
-    const W = weights(), parts = {}, room = t.room, total = Number(r.total) || 0;
-    // 1 star = 0, 5 stars = 100.
-    if (r.desire) parts.desire = ((Number(r.desire) - 1) / 4) * 100;
-    // 100 if it uses 60% or less of the money left for a resort, 0 once it's 75% over. Wide on purpose:
-    // most quotes run over what's left, and they still need to spread out.
-    if (total > 0) parts.price = room > 0 ? clamp01((1.75 - total / room) / 1.15) * 100 : 0;
-    // Heat is what we care about, so only the average high counts: 100 at 80° or cooler, 0 at 90°. Rain is shown, not scored.
+    const parts = [], room = t.room, total = Number(r.total) || 0, n = nights(r.start, r.end), stars = Number(r.desire) || 0;
+    const add = (label, pts) => { if (pts) parts.push([label, Math.round(pts)]); };
+    add(DESIRE[stars], stars * PTS.star);
+    if (n > 0) add(`${n} night${n === 1 ? "" : "s"}`, Math.min(n, PTS.maxNights) * PTS.night);
+    if (total > 0) {
+      const d = room - total;
+      if (d >= 0) add(`${money(d)} under budget`, Math.min(PTS.maxUnder, Math.floor(d / 100) * PTS.under));
+      else add(`${money(-d)} over budget`, -Math.ceil(-d / 100) * PTS.over);
+    }
     const wx = weatherFor(r.start, r.end);
-    if (wx && wx.known.length) parts.weather = clamp01((90 - wx.hiAvg) / 10) * 100;
-    let sum = 0, wsum = 0;
-    Object.keys(parts).forEach((k) => { sum += parts[k] * W[k]; wsum += W[k]; });
-    return { parts, wx, overall: wsum ? Math.round(sum / wsum) : null, left: room - total };
+    if (wx && wx.known.length && wx.hiAvg > PTS.hotFrom) add(`Heat (highs ~${Math.round(wx.hiAvg)}°)`, -(wx.hiAvg - PTS.hotFrom) * PTS.perDegree);
+    const perks = perksOf(r).length, am = amenitiesOf(r).length;
+    add(`${perks} perk${perks === 1 ? "" : "s"}`, Math.min(perks, PTS.maxPerks) * PTS.perk);
+    add(`${am} amenit${am === 1 ? "y" : "ies"}`, Math.min(am, PTS.maxAmenities) * PTS.amenity);
+    const pc = pcFor(r.name), net = (pc.pros || []).length - (pc.cons || []).length;
+    add(net > 0 ? "More pros than cons" : "More cons than pros", Math.max(-PTS.maxProsCons, Math.min(PTS.maxProsCons, net)));
+    // No stars yet means no points: an unrated option would rank unfairly low.
+    const overall = stars ? parts.reduce((s, [, p]) => s + p, 0) : null;
+    return { parts, wx, overall, rated: !!stars, left: room - total };
   }
-  const scoreTone = (n) => (n == null ? "" : n >= 70 ? "good" : n >= 45 ? "warn" : "bad");
+  const scoreTone = (n) => (n == null ? "" : n >= 90 ? "good" : n >= 60 ? "warn" : "bad");
   function scoreBadge(n) {
-    if (n == null) return `<div class="score none" title="Add a price or rating to get a score">No score</div>`;
+    if (n == null) return `<div class="score none" title="Rate it with stars to get points">Rate it</div>`;
     const tone = scoreTone(n);
-    return `<div class="score" style="--tone:var(--${tone});--tone-soft:var(--${tone}-soft)" aria-label="Overall score ${n} out of 100">${n}<small>score</small></div>`;
+    return `<div class="score" style="--tone:var(--${tone});--tone-soft:var(--${tone}-soft)" aria-label="${n} points">${n}<small>pts</small></div>`;
   }
-  function factorBars(sc) {
-    return `<div class="factors">${FACTORS.map(([k, label]) => {
-      const v = sc.parts[k] == null ? null : Math.round(sc.parts[k]), tone = scoreTone(v);
-      return `<div class="factor"><span class="muted">${label}</span><div class="costbar sm">${v == null ? "" : `<span style="width:${Math.max(4, v)}%;background:var(--${tone})"></span>`}</div><b>${v == null ? "–" : Math.round(v)}</b></div>`;
-    }).join("")}</div>`;
+  // The receipt: where every point came from.
+  function receiptHTML(sc) {
+    if (!sc.rated) return `<div class="soft small">Tap the stars to rate it, and its points add up here.</div>`;
+    return `<div class="receipt">${sc.parts.map(([label, p]) => `<div><span>${esc(label)}</span><b class="${p > 0 ? "plus" : "minus"}">${p > 0 ? "+" : "−"}${Math.abs(p)}</b></div>`).join("")}
+      <div class="total"><span>Total</span><b>${sc.overall} pts</b></div></div>`;
   }
   const STAR = '<svg viewBox="0 0 24 24"><path fill="currentColor" stroke="transparent" stroke-width="1.5" stroke-linejoin="round" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>';
   const DESIRE = ["Not rated yet", "Meh", "It's okay", "Would be nice", "Really want it", "Dream stay!"];
@@ -789,7 +799,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       </section>
       ${pickHTML}
       ${top.length ? `<section class="card stack"><div class="row between"><span class="eyebrow">Top options</span><button class="btn quiet sm" data-act="tab" data-k="dates">Compare</button></div>
-        ${top.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b><div class="muted small">${esc(span(r.start, r.end))} · ${money(r.total)}</div></div><span class="pill ${scoreTone(r.sc.overall)}">${r.sc.overall} / 100</span></div>`).join("")}</section>`
+        ${top.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b><div class="muted small">${esc(span(r.start, r.end))} · ${money(r.total)}</div></div><span class="pill ${scoreTone(r.sc.overall)}">${r.sc.overall} pts</span></div>`).join("")}</section>`
         : `<section class="card insight">${art("checkered-flag", 48)}<div class="row between"><div><b>Which option wins?</b><div class="muted small">Add resorts with dates and prices, rate them, and each one gets an overall score.</div></div><button class="btn sm" data-act="tab" data-k="resorts">Resorts</button></div></section>`}
       ${weatherCard(s.start, s.end, true)}
       <section class="card stack">
@@ -817,12 +827,12 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     if (view.sort === "desire") list.sort((a, b) => (Number(b.desire) || 0) - (Number(a.desire) || 0) || (b.sc.overall ?? -1) - (a.sc.overall ?? -1));
 
     const best = rankedOptions()[0];
-    const insight = best && best.sc.overall != null ? `<section class="card insight">${art("checkered-flag", 48)}<div class="row between"><div><b>Top score: ${esc(best.name)}</b>
-      <div class="muted small">${esc(span(best.start, best.end))}, ${money(best.total)}, ${best.sc.overall} out of 100.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare</button></div></section>` : "";
+    const insight = best && best.sc.overall != null ? `<section class="card insight">${art("checkered-flag", 48)}<div class="row between"><div><b>Most points: ${esc(best.name)}</b>
+      <div class="muted small">${esc(span(best.start, best.end))}, ${money(best.total)}, ${best.sc.overall} points.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare</button></div></section>` : "";
 
     const chip = (k, label) => `<button class="chip" data-act="filter" data-k="${esc(k)}" aria-pressed="${view.filter === k}">${esc(label)}</button>`;
     const sortSel = `<label class="row small muted" for="sort">Sort <select id="sort" data-act="sort" class="chip" style="padding:4px 10px">
-      ${[["score", "Best score"], ["price", "Total price"], ["night", "Per night"], ["desire", "Most wanted"]].map(([v, l]) => `<option value="${v}" ${view.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
+      ${[["score", "Most points"], ["price", "Total price"], ["night", "Per night"], ["desire", "Most wanted"]].map(([v, l]) => `<option value="${v}" ${view.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
 
     const cards = list.map((r) => {
       const n = nights(r.start, r.end), picked = s.pickId === r.id, sc = r.sc;
@@ -835,7 +845,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
         <div class="row between"><span class="pill ${diffDates ? "warn" : "plain"}">${esc(span(r.start, r.end))} · ${n} nights</span>${seasonIcons(r.start, r.end)}</div>
         ${wxLine(sc.wx)}
         <div class="row between"><span class="small" style="font-weight:800">${esc(DESIRE[Number(r.desire) || 0])}</span>${starsHTML(r)}</div>
-        ${factorBars(sc)}
+        ${receiptHTML(sc)}
         ${Number(r.total) ? stayMeter(Number(r.total), t.room) : ""}
         ${perksOf(r).length ? `<div class="stack" style="gap:6px"><span class="eyebrow">Perks</span><div class="tags">${tagPills(perksOf(r), "good")}</div></div>` : ""}
         ${amenitiesOf(r).length ? `<div class="stack" style="gap:6px"><span class="eyebrow">Amenities</span><div class="tags">${tagPills(amenitiesOf(r), "plain")}</div></div>` : ""}
@@ -854,7 +864,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       : !list.length ? `<div class="card empty">Nothing matches this filter.</div>` : "";
 
     return `<div class="row between"><h2>Resorts</h2>${canWrite ? `<button class="btn sm" data-act="add-resort">${I.plus} Add option</button>` : ""}</div>
-      <div class="muted">Each card is one option: a resort, your dates and the price you found. Weather and seasons fill in from the dates. Rate how much you want it, and the score does the rest.</div>
+      <div class="muted">Each card is one option: a resort, your dates and the price you found. Weather and seasons fill in from the dates. Rate how much you want it, and the points add up.</div>
       ${insight}
       <div class="toolbar" role="group" aria-label="Filter options">${chip("all", "All")}${chip("dates", "Our dates")}${perkChips.map((p) => chip("perk:" + p, p)).join("")}</div>
       <div class="row between"><span class="muted small">${list.length} option${list.length === 1 ? "" : "s"} for ${s.adults + s.kids} people</span>${sortSel}</div>
@@ -866,7 +876,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   // How the score and seasons are worked out, with sources. Shown under both tabs.
   function scoreHow() {
     const w = weather();
-    return `Score: how much you want it, price (100 if it uses 60% or less of the resort budget (or, if none is set, what the other budget lines leave), 0 once it's 75% over) and heat (the average high: 100 at 80° or cooler, 0 at 90°; rain is shown but not scored), weighted on the Compare tab.
+    return `Points: +${PTS.star} per star, +${PTS.night} per night (up to ${PTS.maxNights}), +${PTS.under} per $100 under the resort budget (up to +${PTS.maxUnder}) or −${PTS.over} per $100 over, −${PTS.perDegree} per degree the usual high averages above ${PTS.hotFrom}°, +${PTS.perk} per perk (up to ${PTS.maxPerks}), +${PTS.amenity} per amenity (up to ${PTS.maxAmenities}), and +1 per pro, −1 per con (up to ±${PTS.maxProsCons}). The resort budget is the resort line on the Budget tab, or what the other lines leave.
       Icons: ${ICON_KEY}.
       Weather: ${link(w.url, w.source)}, ${esc(w.years)} averages, not a forecast. Rainy season: ${link(SEASONS.rainy.url, SEASONS.rainy.source)}. Hurricane season: ${link(SEASONS.hurricane.url, SEASONS.hurricane.source)}.`;
   }
@@ -884,15 +894,10 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   }
 
   function datesView() {
-    const t = totals(), s = settings(), W = weights();
+    const t = totals(), s = settings();
     const ranked = rankedOptions(), ids = cmpIds(ranked);
     if (!ranked.length) return `<h2>Compare</h2><div class="card empty"><h3>Nothing to compare yet</h3><div>Add resort options with dates and prices on the Resorts tab.</div><button class="btn" data-act="tab" data-k="resorts">Go to Resorts</button></div>`;
     const cols = ids.map((id, i) => ({ ...ranked.find((r) => r.id === id), ...OPT[i] }));
-
-    const weightsCard = `<section class="card stack weights"><div class="row between"><h3>What matters most?</h3><span class="muted small">Tap the dots</span></div>
-      ${FACTORS.map(([k, label]) => `<div class="factor"><span>${label}</span><span class="dots" role="group" aria-label="How much ${label.toLowerCase()} counts">${[1, 2, 3, 4, 5].map((i) =>
-        `<button type="button" class="${i <= W[k] ? "on" : ""}" data-act="weight" data-k="${k}" data-n="${i}" aria-label="${label}: ${i} of 5" aria-pressed="${i === W[k]}" ${canWrite ? "" : "disabled"}></button>`).join("")}</span></div>`).join("")}
-      <div class="muted small">Tap the last filled dot again to lower it, down to zero.</div></section>`;
 
     const rankList = `<section class="card stack"><div class="row between"><h3>Ranking</h3><span class="muted small">Tap up to 3 to compare</span></div>
       ${ranked.map((r, i) => { const j = ids.indexOf(r.id); return `<button type="button" class="rank" data-act="cmp-toggle" data-id="${esc(r.id)}" aria-pressed="${j >= 0}" ${j >= 0 ? `style="--opt:${OPT[j].color}"` : ""}>
@@ -903,7 +908,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     // One row per thing to compare. best: "high" or "low" marks the winner when there's more than one option.
     const perNight = (r) => (Number(r.total) || 0) / (nights(r.start, r.end) || 1);
     const rows = [
-      ["Overall score", (r) => r.sc.overall, "high", (r) => scoreBadge(r.sc.overall)],
+      ["Points", (r) => r.sc.overall, "high", (r) => scoreBadge(r.sc.overall)],
       ["Total price", (r) => Number(r.total) || null, "low", (r) => `<strong class="num">${Number(r.total) ? money(r.total) : "–"}</strong>`],
       ["Per night", (r) => (Number(r.total) ? perNight(r) : null), "low", (r) => `<span class="num">${Number(r.total) ? money(perNight(r)) : "–"}</span>`],
       ["Budget", (r) => (Number(r.total) ? r.sc.left : null), "high", (r) => Number(r.total) ? `<span class="small" style="font-weight:800;color:var(--${r.sc.left >= 0 ? "good" : "bad"})">${r.sc.left >= 0 ? `${money(r.sc.left)} under` : `${money(-r.sc.left)} over`}</span>${stayMeter(Number(r.total), t.room, true)}` : "–"],
@@ -929,8 +934,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       ${s.pickId === r.id ? `<span class="pill picked-badge">Our pick</span>` : canWrite ? `<button class="btn quiet sm" data-act="pick" data-id="${esc(r.id)}">Make it our pick</button>` : ""}</div>`).join("")}</div>`;
 
     return `<h2>Compare</h2>
-      <div class="muted">Your options from the Resorts tab, best score first. Pick up to three to line up side by side.</div>
-      ${weightsCard}
+      <div class="muted">Your options from the Resorts tab, most points first. Pick up to three to line up side by side.</div>
       ${rankList}
       ${cols.length ? `<section class="card stack">${heads}${grid}</section>` : `<div class="card empty">Tap options in the ranking to compare them.</div>`}
       <div class="src">${scoreHow()}</div>`;
@@ -1182,9 +1186,8 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       put("proscons", key, { ...cur, [kind]: (cur[kind] || []).filter((x) => x.id !== el.dataset.id) });
       return;
     }
-    // Tapping the current star (or the last filled weight dot) again steps it down, so it can go back to zero.
+    // Tapping the current star again steps it down, so it can go back to zero.
     if (act === "stars") { const cur = state.resorts[id], n = Number(el.dataset.n); put("resorts", id, { ...cur, desire: Number(cur.desire) === n ? n - 1 : n }); return; }
-    if (act === "weight") { const W = weights(), k = el.dataset.k, n = Number(el.dataset.n); setSettings({ scoreW: { ...W, [k]: W[k] === n ? n - 1 : n } }); return; }
     if (act === "heart") {
       const c = el.dataset.c, cur = state[c][id]; const h = [...(cur.hearts || [])];
       const i = h.indexOf(me); if (i >= 0) h.splice(i, 1); else h.push(me);
