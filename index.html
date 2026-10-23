@@ -397,7 +397,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   // Park illustrations from our own icon set (icons/parks/). Decorative, so alt is empty; the tab label says what it is.
   const CAL = I.cal.replace("<svg", '<svg class="cal" aria-hidden="true"');
   const art = (name, size) => `<img class="art" src="icons/parks/${name}.svg" alt=""${size ? ` width="${size}" height="${size}"` : ""}>`;
-  const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Compare", art("checkered-flag")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")], ["news", "News", art("tv-tower")]];
+  const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Compare", art("gold-star")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")], ["news", "News", art("tv-tower")]];
   const PARK_ART = { "Magic Kingdom": "castle", EPCOT: "spaceship-earth", "Hollywood Studios": "tower-of-terror", "Animal Kingdom": "tree-of-life", "Disney Springs": "shopping-bag", "Resort & food": "dole-whip", "Anything else": "sorcerer-hat" };
 
   // Light/dark: follows the phone until someone taps the button, then remembers the choice on this device.
@@ -810,7 +810,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       ${pickHTML}
       ${top.length ? `<section class="card stack"><div class="row between"><span class="eyebrow">Top options</span><button class="btn quiet sm" data-act="tab" data-k="dates">Compare</button></div>
         ${top.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b><div class="muted small">${CAL}${esc(span(r.start, r.end))} · ${money(r.total)}</div></div><span class="pill ${scoreTone(r.sc.overall)}">${r.sc.overall} pts</span></div>`).join("")}</section>`
-        : `<section class="card insight">${art("checkered-flag", 48)}<div class="row between"><div><b>Which option wins?</b><div class="muted small">Add resorts with dates and prices, rate them, and each one gets an overall score.</div></div><button class="btn sm" data-act="tab" data-k="resorts">Resorts</button></div></section>`}
+        : `<section class="card insight">${art("gold-star", 48)}<div class="row between"><div><b>Which option wins?</b><div class="muted small">Add resorts with dates and prices, rate them, and each one gets an overall score.</div></div><button class="btn sm" data-act="tab" data-k="resorts">Resorts</button></div></section>`}
       ${weatherCard(s.start, s.end, true)}
       <section class="card stack">
         <div class="row between"><h2>Coming up</h2><button class="btn quiet sm" data-act="tab" data-k="todo">All to-dos</button></div>
@@ -837,7 +837,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (view.sort === "desire") list.sort((a, b) => (Number(b.desire) || 0) - (Number(a.desire) || 0) || (b.sc.overall ?? -1) - (a.sc.overall ?? -1));
 
     const best = rankedOptions()[0];
-    const insight = best && best.sc.overall != null ? `<section class="card insight">${art("checkered-flag", 48)}<div class="row between"><div><b>Most points: ${esc(best.name)}</b>
+    const insight = best && best.sc.overall != null ? `<section class="card insight">${art("gold-star", 48)}<div class="row between"><div><b>Most points: ${esc(best.name)}</b>
       <div class="muted small">${esc(span(best.start, best.end))}, ${money(best.total)}, ${best.sc.overall} points.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare</button></div></section>` : "";
 
     const chip = (k, label) => `<button class="chip" data-act="filter" data-k="${esc(k)}" aria-pressed="${view.filter === k}">${esc(label)}</button>`;
