@@ -5,8 +5,8 @@ A phone-friendly planner, in vintage Disneyland ticket-book colors, for our Walt
 Live at **https://dtp.ondorilabo.com**. Both phones see the same plan, and changes show up on the other phone within about 5 seconds.
 
 - **Home**: countdown to check-in, budget at a glance, our resort pick, usual weather for our dates, what's coming up.
-- **Resorts**: DVC rental quotes and other options, hearts, pros and cons for each resort, and "our pick".
-- **Dates**: up to three date options side by side. Every resort's real cost from the official 2027 DVC points charts ($ per point editable), how each fits the budget, park days vs. off days, and 30-year weather averages.
+- **Resorts**: one card per option (resort, dates, and the price we found). Weather, rainy season and hurricane season fill in from the dates, a 1–5 star "how much we want it" rating, pros and cons, an overall score out of 100, and "our pick".
+- **Compare**: every option ranked by score, "what matters most" weights (want it / price / weather), and up to three options side by side: price, per night, budget, rating, dates, usual highs, rain, seasons, room, walk to the parks, pros and cons.
 - **Budget**: the picked resort fills the stay line. The park ticket estimator works out tickets for the number of park days (4 adult-price + 1 child ticket).
 - **Dream list**: rides, snacks and moments by park.
 - **To-do**: booking windows and reminders, dated by counting back from check-in.

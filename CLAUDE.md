@@ -12,15 +12,16 @@ A phone-first planner for a Walt Disney World trip, built for my wife. She plans
 
 ## The app
 - **Live at https://dtp.ondorilabo.com.** A Cloudflare Worker (`worker/index.js`, config `wrangler.jsonc`) serves `index.html` and keeps the shared plan in the D1 database `disney-trip-planner` (table `docs`). The README has the API and the deploy command. There's no sign-in, by choice.
-- One self-contained page: `index.html` (HTML/CSS/JS, no build step). Tabs: Home, Resorts, Dates, Budget, Dreams, To-do, News.
+- One self-contained page: `index.html` (HTML/CSS/JS, no build step). Tabs: Home, Resorts, Compare (tab key `dates`), Budget, Dreams, To-do, News.
+- Resorts is where she enters scenarios by hand (resort, dates, the price she found, a 1–5 star rating); real prices can't be synced. Each gets an overall score (`scoreOf` in `index.html`): rating, price vs. the money left after other budget lines, and weather (30-year highs and rain chance), weighted by `trip/settings.scoreW`. Rainy season (NWS, May 27 – Oct 15) and hurricane season (NOAA, Jun 1 – Nov 30, peak mid-Aug – mid-Oct) are month-day ranges, so they work for any year. Compare ranks them and shows up to 3 side by side.
 - Storage modes: on the website it uses the Worker API and checks for changes every 5 seconds. The claude.ai artifact (https://claude.ai/artifact/XoojCoRWJGJiB31w4jiKoQ) still runs but is **no longer the live copy**. Opened as a file, it uses localStorage seeded from `STARTER`.
 - Change live data through the API (`PUT`/`DELETE https://dtp.ondorilabo.com/api/docs/<coll>/<id>`), not with the artifact tools.
 - Ticket prices: 4 adult-price + 1 child ticket (Amelia, 13, and Avery, 10, pay adult prices by the trip; Annie is 3). The tickets line is a formula estimate (`ref/tickets`).
 - Collections (one doc per item):
-  - `trip/settings`: `{budget, start, end, adults, kids, pickId, tixDays, tixAdults, tixKids}`; `trip/compare`: `{opts: [{start, end} ×3]}`
+  - `trip/settings`: `{budget, start, end, adults, kids, pickId, tixDays, tixAdults, tixKids, scoreW: {desire, price, weather}}` (weights 0–5); `trip/compare`: `{ids: [resort ids, up to 3]}`
   - `proscons/<resort-slug>`: `{name, pros[], cons[]}` (items `{id, text, by}`)
   - `dvc/<resort>` (official 2027 points charts), `ref/seasons2027`, `ref/weather`, `ref/tickets`, `ref/news`, `news/<id>`
-  - `resorts/<id>`: `{name, room, size, sleeps, kitchen, start, end, total, points, ppp, source, walk, eeh, vibe, notes, hearts[], out}`
+  - `resorts/<id>`: `{name, room, size, sleeps, kitchen, start, end, total, points, ppp, source, walk, eeh, vibe, notes, desire (0–5 stars), hearts[], out}`
   - `budget/<id>`: `{label, cat, amount, status, note}` (`cat` is one of stay, tickets, travel, food, mugs, fun, other; the picked resort fills the stay line automatically)
   - `wishes/<id>`: `{text, park, hearts[], done}`
   - `todos/<id>`: `{text, months|days|due, done, note}` (dates count back from check-in)

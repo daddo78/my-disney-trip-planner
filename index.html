@@ -185,13 +185,33 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .tabs button[aria-current="page"] .art { opacity: 1; filter: none; transform: scale(1.08); }
 .park h3 .art, .insight .art { object-fit: contain; flex: none; }
 
-/* compare dates & weather */
-.dates { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.optrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
-.opt { background: var(--surface); border-radius: var(--r); padding: 14px; box-shadow: var(--shadow); display: grid; gap: 10px; align-content: start; border-top: 6px solid var(--opt); min-width: 0; }
-.opt.empty { box-shadow: none; background: transparent; border: 2px dashed var(--line); border-top: 6px solid var(--line); justify-items: start; }
-.opt .dates { grid-template-columns: 1fr 72px; gap: 8px; }
-.opt .dates input { padding-inline: 8px !important; }
+/* scores, stars & compare */
+.score { flex: none; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; align-content: center; background: var(--tone-soft); color: var(--tone);
+  font-family: var(--display); font-weight: 600; font-size: 1.35rem; line-height: 1; border: 3px solid var(--tone); }
+.score small { font-family: var(--body); font-size: .55rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.score.none { --tone: var(--line); --tone-soft: var(--surface-2); color: var(--muted); font-size: .7rem; text-align: center; }
+.resort .head .who { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.stars { display: inline-flex; gap: 0; }
+.stars button { border: 0; background: transparent; padding: 4px; color: var(--line); line-height: 0; }
+.stars button svg { width: 26px; height: 26px; }
+.stars button.on { color: var(--c-food); }
+.stars button.on path { stroke: var(--warn); }
+.stars.sm button { padding: 1px; } .stars.sm button svg { width: 16px; height: 16px; }
+.factors { display: grid; gap: 6px; }
+.factor { display: grid; grid-template-columns: 64px 1fr 34px; gap: 8px; align-items: center; font-size: .82rem; font-weight: 700; }
+.factor b { text-align: right; font-variant-numeric: tabular-nums; }
+.dots { display: inline-flex; gap: 6px; }
+.dots button { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--accent); background: transparent; padding: 0; }
+.dots button.on { background: var(--accent); }
+.weights .factor { grid-template-columns: 76px 1fr; }
+.rank { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; width: 100%; text-align: left; border: 2px solid var(--line);
+  background: var(--surface); border-radius: 14px; padding: 8px 10px; }
+.rank[aria-pressed="true"] { border-color: var(--opt, var(--accent)); background: var(--surface-2); }
+.rank .n { font-family: var(--display); font-weight: 600; color: var(--muted); text-align: center; }
+.rank .score { width: 40px; height: 40px; font-size: 1rem; border-width: 2px; }
+.cmprow { display: grid; gap: 6px; }
+.optcell .pill { justify-self: start; white-space: normal; max-width: 100%; margin-bottom: 3px; }
+.optcell .best { color: var(--good); font-weight: 800; font-size: .72rem; }
 .opt-tag { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--opt); color: var(--surface); font-family: var(--display); font-weight: 600; }
 .opt-tag.sm { width: 22px; height: 22px; font-size: .8rem; }
 .optgrid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 8px; }
@@ -201,9 +221,6 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 @media (max-width: 480px) { .optgrid { gap: 6px; } .optcell { padding: 8px 6px; } .optcell strong { font-size: 1.05rem; } .optcell .nn { display: none; } .optcell .pill { padding: 2px 6px; font-size: .68rem; } }
 .src { font-size: .78rem; color: var(--muted); }
 .src a { color: inherit; }
-.ppp { display: inline-flex; align-items: center; gap: 4px; font-size: .85rem; color: var(--muted); font-weight: 700; }
-.ppp input { width: 64px; border: 2px solid var(--line); background: var(--surface-2); border-radius: 10px; padding: 4px 6px; font-weight: 800; color: var(--ink); }
-.cmp .price span { display: block; }
 .daydots { display: flex; flex-wrap: wrap; gap: 4px; }
 .daydots i { width: 14px; height: 14px; border-radius: 50%; }
 .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -332,7 +349,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   let mode = "starting"; // "shared" | "local"
   let db = null, userCap = null, me = "me", canWrite = true;
   let names = {};
-  const view = { tab: "home", filter: "all", sort: "price", cmpOpts: null, cmpFocus: 0, cmpFilter: "five", newsTag: "all" };
+  const view = { tab: "home", filter: "all", sort: "score", cmpIds: null, newsTag: "all" };
   const LS_KEY = "our-disney-trip-v1";
 
   // ---------- helpers ----------
@@ -367,7 +384,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   I.news = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 17h3"/></svg>';
   // Park illustrations from our own icon set (icons/parks/). Decorative, so alt is empty; the tab label says what it is.
   const art = (name, size) => `<img class="art" src="icons/parks/${name}.svg" alt=""${size ? ` width="${size}" height="${size}"` : ""}>`;
-  const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Dates", art("globe-plane")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")], ["news", "News", art("tv-tower")]];
+  const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Compare", art("globe-plane")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")], ["news", "News", art("tv-tower")]];
   const PARK_ART = { "Magic Kingdom": "castle", EPCOT: "spaceship-earth", "Hollywood Studios": "tower-of-terror", "Animal Kingdom": "tree-of-life", "Resort & food": "dole-whip", "Anything else": "sorcerer-hat" };
 
   // Light/dark: follows the phone until someone taps the button, then remembers the choice on this device.
@@ -538,27 +555,80 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     return { text: `In ${n} days`, cls: "plain" };
   }
 
-  // ---------- DVC points & weather ----------
+  // ---------- weather, seasons & scores ----------
+  // The DVC charts are only used now for resort names and defaults (walk, vibe) when adding an option.
   const charts = () => ({ ...REF.dvc, ...state.dvc });
-  const seasonCal = () => state.ref.seasons2027 || REF.seasons;
   const weather = () => state.ref.weather || REF.weather;
   const md = (d) => isoD(d).slice(5);
-  function eachNight(a, b, fn) { const x = parseD(a), y = parseD(b); if (!x || !y) return; for (let d = new Date(x); d < y; d.setDate(d.getDate() + 1)) fn(new Date(d)); }
-  function seasonIdx(d) {
-    const cal = seasonCal(); if (d.getFullYear() !== cal.year) return -1;
-    const m = md(d), i = cal.ranges.findIndex((r) => { const [a, b] = r.split(":"); return m >= a && m <= b; });
-    return i < 0 ? -1 : cal.rangeSeason[i];
+  // Dates are month-day ranges, so they work for any trip year.
+  const SEASONS = {
+    rainy: { from: "05-27", to: "10-15", source: "NWS Melbourne, wet and dry season onset in East Central Florida (Orlando medians: May 27 – Oct 15)", url: "https://www.weather.gov/media/mlb/climate/wetdryseason.pdf" },
+    hurricane: { from: "06-01", to: "11-30", peakFrom: "08-15", peakTo: "10-15", source: "NOAA National Hurricane Center (season Jun 1 – Nov 30, most activity mid-Aug to mid-Oct, peak Sep 10)", url: "https://www.nhc.noaa.gov/climo/" },
+  };
+  function seasonsFor(a, b) {
+    const x = parseD(a), y = parseD(b); if (!x || !y || y <= x) return null;
+    const R = SEASONS.rainy, H = SEASONS.hurricane, f = { all: 0, rainy: 0, hur: 0, peak: 0 };
+    for (let d = new Date(x); d <= y; d.setDate(d.getDate() + 1)) {
+      const m = md(d); f.all++;
+      if (m >= R.from && m <= R.to) f.rainy++;
+      if (m >= H.from && m <= H.to) f.hur++;
+      if (m >= H.peakFrom && m <= H.peakTo) f.peak++;
+    }
+    return f;
   }
-  // Points for a stay: each night is priced by its season and whether it's a Fri/Sat night.
-  function stayPoints(room, a, b) {
-    let pts = 0, missing = 0;
-    eachNight(a, b, (d) => { const s = seasonIdx(d); if (s < 0) { missing++; return; } const we = d.getDay() === 5 || d.getDay() === 6; pts += Number(room.pts[s * 2 + (we ? 1 : 0)]) || 0; });
-    return { pts, missing };
+  function seasonPills(a, b) {
+    const f = seasonsFor(a, b); if (!f) return "";
+    const rain = f.rainy === f.all ? `<span class="pill warn">Rainy season</span>` : f.rainy ? `<span class="pill warn">Rainy season ends ~Oct 15</span>` : `<span class="pill good">Dry season</span>`;
+    const hur = f.peak ? `<span class="pill warn">Peak hurricane season</span>` : f.hur ? `<span class="pill plain">Hurricane season</span>` : "";
+    return rain + hur;
   }
-  function nightMix(a, b) {
-    let we = 0, all = 0; const seasons = new Set();
-    eachNight(a, b, (d) => { all++; if (d.getDay() === 5 || d.getDay() === 6) we++; const s = seasonIdx(d); if (s >= 0) seasons.add(s); });
-    return { all, we, wk: all - we, seasons: [...seasons] };
+  // Overall score, 0–100: a weighted average of how much we want it, price, and weather. Missing parts are left out.
+  const SCORE_W = { desire: 3, price: 3, weather: 2 };
+  const FACTORS = [["desire", "Want it"], ["price", "Price"], ["weather", "Weather"]];
+  const weights = () => ({ ...SCORE_W, ...(settings().scoreW || {}) });
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  function scoreOf(r, t) {
+    const W = weights(), parts = {}, room = t.budget - t.other, total = Number(r.total) || 0;
+    // 1 star = 0, 5 stars = 100.
+    if (r.desire) parts.desire = ((Number(r.desire) - 1) / 4) * 100;
+    // 100 if it uses 60% or less of the money left for a resort, 0 once it's 75% over. Wide on purpose:
+    // most quotes run over what's left, and they still need to spread out.
+    if (total > 0) parts.price = room > 0 ? clamp01((1.75 - total / room) / 1.15) * 100 : 0;
+    // Average high: 100 at 80° or cooler, 0 at 92°. Rain chance: 100 at 15% or less, 0 at 65%.
+    const wx = weatherFor(r.start, r.end);
+    if (wx && wx.known.length) parts.weather = ((clamp01((92 - wx.hiAvg) / 12) + clamp01((65 - wx.rainAvg) / 50)) / 2) * 100;
+    let sum = 0, wsum = 0;
+    Object.keys(parts).forEach((k) => { sum += parts[k] * W[k]; wsum += W[k]; });
+    return { parts, wx, overall: wsum ? Math.round(sum / wsum) : null, left: room - total };
+  }
+  const scoreTone = (n) => (n == null ? "" : n >= 70 ? "good" : n >= 45 ? "warn" : "bad");
+  function scoreBadge(n) {
+    if (n == null) return `<div class="score none" title="Add a price or rating to get a score">No score</div>`;
+    const tone = scoreTone(n);
+    return `<div class="score" style="--tone:var(--${tone});--tone-soft:var(--${tone}-soft)" aria-label="Overall score ${n} out of 100">${n}<small>score</small></div>`;
+  }
+  function factorBars(sc) {
+    return `<div class="factors">${FACTORS.map(([k, label]) => {
+      const v = sc.parts[k] == null ? null : Math.round(sc.parts[k]), tone = scoreTone(v);
+      return `<div class="factor"><span class="muted">${label}</span><div class="costbar sm">${v == null ? "" : `<span style="width:${Math.max(4, v)}%;background:var(--${tone})"></span>`}</div><b>${v == null ? "–" : Math.round(v)}</b></div>`;
+    }).join("")}</div>`;
+  }
+  const STAR = '<svg viewBox="0 0 24 24"><path fill="currentColor" stroke="transparent" stroke-width="1.5" stroke-linejoin="round" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>';
+  const DESIRE = ["Not rated yet", "Meh", "It's okay", "Would be nice", "Really want it", "Dream stay!"];
+  function starsHTML(r, small) {
+    const n = Number(r.desire) || 0;
+    if (small || !canWrite) return `<span class="stars sm" role="img" aria-label="${n ? `${n} of 5 stars` : "Not rated"}">${[1, 2, 3, 4, 5].map((i) => `<button type="button" tabindex="-1" disabled class="${i <= n ? "on" : ""}">${STAR}</button>`).join("")}</span>`;
+    return `<span class="stars" role="group" aria-label="How much we want it">${[1, 2, 3, 4, 5].map((i) => `<button type="button" class="${i <= n ? "on" : ""}" data-act="stars" data-id="${esc(r.id)}" data-n="${i}" aria-label="${i} star${i === 1 ? "" : "s"}: ${DESIRE[i]}" aria-pressed="${i === n}">${STAR}</button>`).join("")}</span>`;
+  }
+  // Every option that isn't ruled out, scored and ranked best first.
+  function rankedOptions() {
+    const t = totals();
+    return entries("resorts").filter((r) => !r.out).map((r) => ({ ...r, sc: scoreOf(r, t) }))
+      .sort((a, b) => (b.sc.overall ?? -1) - (a.sc.overall ?? -1) || (Number(a.total) || 0) - (Number(b.total) || 0));
+  }
+  function wxLine(wx) {
+    if (!wx || !wx.known.length) return `<div class="small muted">${I.sun} No weather history for these dates (we have Aug 1 – Nov 15).</div>`;
+    return `<div class="small">${I.sun} Usually ${wx.hiMin === wx.hiMax ? wx.hiMax : `${wx.hiMin}–${wx.hiMax}`}° / ${wx.loMin === wx.loMax ? wx.loMin : `${wx.loMin}–${wx.loMax}`}° · ${wx.rainAvg}% rain chance · ~${Math.round(wx.rainDays)} rainy day${Math.round(wx.rainDays) === 1 ? "" : "s"}</div>`;
   }
   function weatherFor(a, b) {
     const w = weather(), days = [];
@@ -569,7 +639,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     if (!known.length) return { days, known };
     const col = (i) => known.map((x) => x.v[i]);
     const sum = (arr) => arr.reduce((s, v) => s + v, 0);
-    return { days, known, hiMin: Math.min(...col(0)), hiMax: Math.max(...col(0)), loMin: Math.min(...col(1)), loMax: Math.max(...col(1)),
+    return { days, known, hiAvg: sum(col(0)) / known.length, hiMin: Math.min(...col(0)), hiMax: Math.max(...col(0)), loMin: Math.min(...col(1)), loMax: Math.max(...col(1)),
       rainAvg: Math.round(sum(col(2)) / known.length), rainDays: sum(col(2)) / 100, pourDays: sum(col(3)) / 100, inches: sum(col(4)) };
   }
   // Pros & cons belong to the resort, not one date option, so every BoardWalk option shares one list.
@@ -656,14 +726,14 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     }
     const pick = t.pick;
     const pickHTML = pick ? `<div class="card stack">
-        <div class="row between"><span class="eyebrow">Our pick</span><button class="btn quiet sm" data-act="tab" data-k="resorts">Compare all</button></div>
+        <div class="row between"><span class="eyebrow">Our pick</span><button class="btn quiet sm" data-act="tab" data-k="dates">Compare all</button></div>
         <div class="row between"><div><h3>${esc(pick.name)}</h3><div class="muted small">${esc(pick.room)} · ${nights(pick.start, pick.end)} nights</div></div>
         <div class="price"><strong class="num">${money(pick.total)}</strong><span class="muted small">${money(pick.total / (nights(pick.start, pick.end) || 1))}/night</span></div></div>
         ${pick.notes ? `<div class="note quote muted">${esc(pick.notes.split("\n")[0])}</div>` : ""}</div>`
       : `<div class="card insight">${art("resort", 48)}<div class="stack" style="gap:6px"><h3>No resort picked yet</h3>
-        <div class="muted small">Compare the options and tap “Make it our pick.” Its price fills in the stay line of the budget.</div>
-        <div><button class="btn sm" data-act="tab" data-k="resorts">Compare resorts</button></div></div></div>`;
-    const loves = entries("resorts").filter((r) => (r.hearts || []).length && !r.out).sort((a, b) => b.hearts.length - a.hearts.length).slice(0, 3);
+        <div class="muted small">Add options on the Resorts tab, line them up on Compare, and tap “Make it our pick.” Its price fills in the stay line of the budget.</div>
+        <div><button class="btn sm" data-act="tab" data-k="dates">Compare options</button></div></div></div>`;
+    const top = rankedOptions().filter((r) => r.sc.overall != null).slice(0, 3);
     const todos = entries("todos").filter((x) => !x.done).map((x) => ({ ...x, d: dueDate(x) })).filter((x) => x.d && x.d >= today()).sort((a, b) => a.d - b.d).slice(0, 3);
     const wish = entries("wishes");
     const wx = weatherFor(s.start, s.end);
@@ -683,9 +753,10 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
         ${leftHTML(t)}${meterHTML(t)}
       </section>
       ${pickHTML}
-      <section class="card insight">${art("globe-plane", 48)}<div class="row between"><div><b>Earlier or later dates?</b><div class="muted small">See every resort's real points cost and the usual weather for any dates.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare dates</button></div></section>
+      ${top.length ? `<section class="card stack"><div class="row between"><span class="eyebrow">Top options</span><button class="btn quiet sm" data-act="tab" data-k="dates">Compare</button></div>
+        ${top.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b><div class="muted small">${esc(span(r.start, r.end))} · ${money(r.total)}</div></div><span class="pill ${scoreTone(r.sc.overall)}">${r.sc.overall} / 100</span></div>`).join("")}</section>`
+        : `<section class="card insight">${art("globe-plane", 48)}<div class="row between"><div><b>Which option wins?</b><div class="muted small">Add resorts with dates and prices, rate them, and each one gets an overall score.</div></div><button class="btn sm" data-act="tab" data-k="resorts">Resorts</button></div></section>`}
       ${weatherCard(s.start, s.end, true)}
-      ${loves.length ? `<section class="card stack"><span class="eyebrow">Hearted resorts</span>${loves.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b> <span class="muted small">${esc(span(r.start, r.end))}</span></div><span class="pill">${I.heart.replace("<svg", '<svg width="14" height="14"')} ${r.hearts.length}</span></div>`).join("")}</section>` : ""}
       <section class="card stack">
         <div class="row between"><h2>Coming up</h2><button class="btn quiet sm" data-act="tab" data-k="todo">All to-dos</button></div>
         ${todos.length ? todos.map((x) => { const r = relDays(x.d); return `<div class="row between"><div><b>${esc(x.text)}</b><div class="muted small">${fmt(x.d, { month: "long", day: "numeric", year: "numeric" })}</div></div><span class="pill ${r.cls}">${r.text}</span></div>`; }).join("") : `<div class="muted">Nothing dated coming up.</div>`}
@@ -693,166 +764,141 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       <section class="card row between"><div><span class="eyebrow">Dream list</span><div><b class="num">${wish.filter((w) => w.done).length}</b> of <b class="num">${wish.length}</b> done</div></div><button class="btn ghost sm" data-act="tab" data-k="dreams">${art("sorcerer-hat", 20)} Open</button></section>`;
   }
 
+  // Each resort doc is one scenario: a resort, dates, and the price she found. Weather, seasons and the score come from the dates.
   function resortsView() {
     const t = totals(), s = settings();
-    let list = entries("resorts").filter((r) => !r.out);
+    let list = rankedOptions();
     const out = entries("resorts").filter((r) => r.out);
     const f = view.filter;
     if (f === "studio") list = list.filter((r) => r.size === "Studio");
     if (f === "1br") list = list.filter((r) => r.size === "1 Bedroom");
     if (f === "walk") list = list.filter((r) => r.walk);
-    if (f === "hearts") list = list.filter((r) => (r.hearts || []).length);
     if (f === "dates") list = list.filter((r) => r.start === s.start && r.end === s.end);
     const per = (r) => (Number(r.total) || 0) / (nights(r.start, r.end) || 1);
-    list.sort(view.sort === "night" ? (a, b) => per(a) - per(b) : view.sort === "hearts" ? (a, b) => (b.hearts || []).length - (a.hearts || []).length || a.total - b.total : (a, b) => a.total - b.total);
+    if (view.sort === "price") list.sort((a, b) => (Number(a.total) || 0) - (Number(b.total) || 0));
+    if (view.sort === "night") list.sort((a, b) => per(a) - per(b));
+    if (view.sort === "desire") list.sort((a, b) => (Number(b.desire) || 0) - (Number(a.desire) || 0) || (b.sc.overall ?? -1) - (a.sc.overall ?? -1));
 
-    const all = entries("resorts").filter((r) => !r.out && r.total > 0);
-    const cheapest = (sz) => all.filter((r) => r.size === sz).sort((a, b) => a.total - b.total)[0];
-    const st = cheapest("Studio"), br = cheapest("1 Bedroom");
-    const insight = st && br ? `<section class="card insight"><div class="ic">${I.spark}</div><div><b>5th-sleeper studios save ${money(br.total - st.total)}</b>
-      <div class="muted small">Cheapest studio: ${esc(st.name)}, ${money(st.total)} (${nights(st.start, st.end)} nights). Cheapest 1 bedroom: ${esc(br.name)}, ${money(br.total)} (${nights(br.start, br.end)} nights).</div></div></section>` : "";
+    const best = rankedOptions()[0];
+    const insight = best && best.sc.overall != null ? `<section class="card insight">${art("globe-plane", 48)}<div class="row between"><div><b>Top score: ${esc(best.name)}</b>
+      <div class="muted small">${esc(span(best.start, best.end))}, ${money(best.total)}, ${best.sc.overall} out of 100.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare</button></div></section>` : "";
 
     const chip = (k, label) => `<button class="chip" data-act="filter" data-k="${k}" aria-pressed="${view.filter === k}">${label}</button>`;
     const sortSel = `<label class="row small muted" for="sort">Sort <select id="sort" data-act="sort" class="chip" style="padding:4px 10px">
-      <option value="price" ${view.sort === "price" ? "selected" : ""}>Total price</option><option value="night" ${view.sort === "night" ? "selected" : ""}>Per night</option><option value="hearts" ${view.sort === "hearts" ? "selected" : ""}>Most loved</option></select></label>`;
+      ${[["score", "Best score"], ["price", "Total price"], ["night", "Per night"], ["desire", "Most wanted"]].map(([v, l]) => `<option value="${v}" ${view.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
 
     const cards = list.map((r) => {
-      const n = nights(r.start, r.end), mine = (r.hearts || []).includes(me), picked = s.pickId === r.id;
-      const after = t.budget - t.other - (Number(r.total) || 0);
+      const n = nights(r.start, r.end), picked = s.pickId === r.id, sc = r.sc;
       const diffDates = r.start !== s.start || r.end !== s.end;
       return `<article class="card resort ${picked ? "picked" : ""}">
-        <div class="head"><div>
+        <div class="head"><div class="who">${scoreBadge(sc.overall)}<div style="min-width:0">
           ${picked ? `<span class="pill picked-badge">Our pick</span> ` : ""}<h3 style="display:inline">${esc(r.name)}</h3>
-          <div class="muted small">${esc(r.room)}${r.vibe ? " · " + esc(r.vibe) : ""}</div></div>
-          <div class="price"><strong class="num">${money(r.total)}</strong><span class="muted small num">${money(per(r))}/night</span></div></div>
-        ${stayMeter(Number(r.total) || 0, t.budget - t.other)}
+          <div class="muted small">${esc(r.room)}${r.vibe ? " · " + esc(r.vibe) : ""}</div></div></div>
+          <div class="price"><strong class="num">${Number(r.total) ? money(r.total) : "–"}</strong><span class="muted small num">${Number(r.total) ? money(per(r)) + "/night" : "Add a price"}</span></div></div>
+        <div class="tags"><span class="pill ${diffDates ? "warn" : "plain"}">${esc(span(r.start, r.end))} · ${n} nights</span>${seasonPills(r.start, r.end)}</div>
+        ${wxLine(sc.wx)}
+        <div class="row between"><span class="small" style="font-weight:800">${esc(DESIRE[Number(r.desire) || 0])}</span>${starsHTML(r)}</div>
+        ${factorBars(sc)}
+        ${Number(r.total) ? stayMeter(Number(r.total), t.budget - t.other) : ""}
         <div class="tags">
-          <span class="pill ${diffDates ? "warn" : "plain"}">${esc(span(r.start, r.end))} · ${n} nights</span>
           <span class="pill plain">Sleeps ${esc(r.sleeps)}</span>
           <span class="pill ${r.kitchen === "No kitchen" ? "bad" : "plain"}">${esc(r.kitchen)}</span>
           ${r.walk ? `<span class="pill good">Walk to EPCOT &amp; Hollywood Studios</span>` : ""}
           ${r.eeh ? `<span class="pill">Extended evening hours</span>` : ""}
-          ${r.points ? `<span class="pill plain">${esc(r.points)} pts @ $${esc(r.ppp)}</span>` : ""}
           <span class="pill plain">${esc(r.source)}</span>
         </div>
         ${r.notes ? `<div class="note quote">${esc(r.notes)}</div>` : ""}
         ${prosConsHTML(r.name)}
-        <div class="soft small">With everything else in the budget, this ${after >= 0 ? `leaves <b style="color:var(--good)">${money(after)}</b> to spare` : `goes <b style="color:var(--bad)">${money(-after)} over</b>`}.</div>
-        <div class="row between">
-          <div class="row">
-            <button class="heart ${mine ? "on" : ""}" data-act="heart" data-c="resorts" data-id="${r.id}" aria-pressed="${mine}" aria-label="Heart ${esc(r.name)}" ${canWrite ? "" : "disabled"}>${mine ? I.heart : I.heartO}<span class="num">${(r.hearts || []).length || ""}</span></button>
-            <span class="muted small">${esc(lovedBy(r.hearts))}</span>
-          </div>
-          ${canWrite ? `<div class="row">
-            <button class="icon-btn" data-act="edit-resort" data-id="${r.id}" aria-label="Edit ${esc(r.name)}">${I.pencil}</button>
-            ${picked ? `<button class="btn ghost sm" data-act="unpick">Unpick</button>` : `<button class="btn sm" data-act="pick" data-id="${r.id}">Make it our pick</button>`}
-          </div>` : ""}
-        </div></article>`;
+        ${Number(r.total) ? `<div class="soft small">With everything else in the budget, this ${sc.left >= 0 ? `leaves <b style="color:var(--good)">${money(sc.left)}</b> to spare` : `goes <b style="color:var(--bad)">${money(-sc.left)} over</b>`}.</div>` : ""}
+        ${canWrite ? `<div class="row between">
+          <button class="icon-btn" data-act="edit-resort" data-id="${r.id}" aria-label="Edit ${esc(r.name)}">${I.pencil}</button>
+          ${picked ? `<button class="btn ghost sm" data-act="unpick">Unpick</button>` : `<button class="btn sm" data-act="pick" data-id="${r.id}">Make it our pick</button>`}
+        </div>` : ""}</article>`;
     }).join("");
 
     const empty = !entries("resorts").length
-      ? `<div class="card empty"><h3>No resorts yet</h3><div>Add the first option you're looking at, with its dates and total price.</div>${canWrite ? `<button class="btn" data-act="add-resort">${I.plus} Add a resort</button>` : ""}</div>`
+      ? `<div class="card empty"><h3>No options yet</h3><div>Add a resort with the dates and the total price you found.</div>${canWrite ? `<button class="btn" data-act="add-resort">${I.plus} Add an option</button>` : ""}</div>`
       : !list.length ? `<div class="card empty">Nothing matches this filter.</div>` : "";
 
     return `<div class="row between"><h2>Resorts</h2>${canWrite ? `<button class="btn sm" data-act="add-resort">${I.plus} Add option</button>` : ""}</div>
+      <div class="muted">Each card is one option: a resort, your dates and the price you found. Weather and seasons fill in from the dates. Rate how much you want it, and the score does the rest.</div>
       ${insight}
-      <div class="toolbar" role="group" aria-label="Filter resorts">${chip("all", "All")}${chip("studio", "5th-sleeper studios")}${chip("1br", "1 bedrooms")}${chip("walk", "Walk to parks")}${chip("hearts", "Hearted")}${chip("dates", "Our dates")}</div>
+      <div class="toolbar" role="group" aria-label="Filter options">${chip("all", "All")}${chip("studio", "Studios")}${chip("1br", "1 bedrooms")}${chip("walk", "Walk to parks")}${chip("dates", "Our dates")}</div>
       <div class="row between"><span class="muted small">${list.length} option${list.length === 1 ? "" : "s"} for ${s.adults + s.kids} people</span>${sortSel}</div>
       ${cards}${empty}
-      <div class="src">Prices: our DVC rental quotes. Points checked against the ${link(seasonCal().url, "official 2027 DVC points charts")}. To price other dates, use the ${`<a href="#dates">Dates tab</a>`}.</div>
-      ${out.length ? `<details class="card"><summary>Ruled out (${out.length})</summary><div class="stack" style="margin-top:12px">${out.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b><div class="muted small note">${esc(r.notes)}</div></div>${canWrite ? `<button class="icon-btn" data-act="edit-resort" data-id="${r.id}" aria-label="Edit ${esc(r.name)}">${I.pencil}</button>` : ""}</div>`).join("")}</div></details>` : ""}`;
+      <div class="src">Prices: what we found when we looked. ${scoreHow()}</div>
+      ${out.length ? `<details class="card"><summary>Ruled out (${out.length})</summary><div class="stack" style="margin-top:12px">${out.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b> <span class="muted small">${esc(span(r.start, r.end))}${Number(r.total) ? " · " + money(r.total) : ""}</span><div class="muted small note">${esc(r.notes)}</div></div>${canWrite ? `<button class="icon-btn" data-act="edit-resort" data-id="${r.id}" aria-label="Edit ${esc(r.name)}">${I.pencil}</button>` : ""}</div>`).join("")}</div></details>` : ""}`;
   }
 
-  // Up to three date options, compared side by side. Saved in trip/compare so we both see the same options.
-  const OPT = [{ k: "A", color: "var(--accent)" }, { k: "B", color: "var(--c-travel)" }, { k: "C", color: "var(--c-mugs)" }];
-  const addDays = (iso, k) => { const d = parseD(iso); if (!d) return ""; d.setDate(d.getDate() + k); return isoD(d); };
-  function cmpOpts() {
-    const saved = (state.trip.compare && state.trip.compare.opts) || view.cmpOpts;
-    if (saved) return OPT.map((_, i) => saved[i] && saved[i].start ? saved[i] : { start: "", end: "" });
-    const s = settings();
-    return [{ start: s.start, end: s.end }, { start: "2027-09-19", end: "2027-10-01" }, { start: "", end: "" }];
+  // How the score and seasons are worked out, with sources. Shown under both tabs.
+  function scoreHow() {
+    const w = weather();
+    return `Score: how much you want it, price (100 if it uses 60% or less of the money left for a resort after the other budget lines, 0 once it's 75% over) and weather (cooler highs and less rain score higher), weighted on the Compare tab.
+      Weather: ${link(w.url, w.source)}, ${esc(w.years)} averages, not a forecast. Rainy season: ${link(SEASONS.rainy.url, SEASONS.rainy.source)}. Hurricane season: ${link(SEASONS.hurricane.url, SEASONS.hurricane.source)}.`;
   }
-  function setOpt(i, patch) {
-    const opts = cmpOpts().map((o, j) => (j === i ? { ...o, ...patch } : o));
-    view.cmpOpts = opts;
-    if (canWrite) put("trip", "compare", { opts }); else render();
+
+  // Up to three options side by side, picked from the ranking. Saved in trip/compare so we both see the same ones.
+  const OPT = [{ k: "A", color: "var(--accent)" }, { k: "B", color: "var(--c-travel)" }, { k: "C", color: "var(--c-mugs)" }];
+  function cmpIds(ranked) {
+    const saved = (state.trip.compare && state.trip.compare.ids) || view.cmpIds;
+    const ids = (saved || []).filter((id) => ranked.some((r) => r.id === id));
+    return saved ? ids : ranked.slice(0, 3).map((r) => r.id);
+  }
+  function setCmpIds(ids) {
+    view.cmpIds = ids;
+    if (canWrite) put("trip", "compare", { ids }); else render();
   }
 
   function datesView() {
-    const s = settings(), t = totals(), cal = seasonCal(), parkDays = Number(s.tixDays) || 5;
-    const opts = cmpOpts().map((o, i) => ({ ...o, ...OPT[i], i, n: nights(o.start, o.end) }));
-    const live = opts.filter((o) => o.start && o.n > 0);
-    if (!opts.some((o) => o.i === view.cmpFocus && o.start && o.n > 0)) view.cmpFocus = live.length ? live[0].i : 0;
-    const focus = opts[view.cmpFocus];
+    const t = totals(), s = settings(), W = weights();
+    const ranked = rankedOptions(), ids = cmpIds(ranked);
+    if (!ranked.length) return `<h2>Compare</h2><div class="card empty"><h3>Nothing to compare yet</h3><div>Add resort options with dates and prices on the Resorts tab.</div><button class="btn" data-act="tab" data-k="resorts">Go to Resorts</button></div>`;
+    const cols = ids.map((id, i) => ({ ...ranked.find((r) => r.id === id), ...OPT[i] }));
 
-    const optCard = (o) => {
-      if (!o.start) return `<div class="opt empty" style="--opt:${o.color}"><b class="opt-tag">${o.k}</b>${canWrite ? `<button class="btn ghost sm" data-act="opt-add" data-i="${o.i}">${I.plus} Add a ${o.i === 1 ? "second" : "third"} option</button>` : `<span class="muted small">No option ${o.k}</span>`}</div>`;
-      const mix = nightMix(o.start, o.end), wx = weatherFor(o.start, o.end), isTrip = o.start === s.start && o.end === s.end;
-      const off = o.n + 1 - parkDays;
-      return `<div class="opt" style="--opt:${o.color}">
-        <div class="row between"><b class="opt-tag">${o.k}</b><span class="small" style="font-weight:800">${esc(span(o.start, o.end))}</span>
-          ${o.i > 0 && canWrite ? `<button class="x" data-act="opt-clear" data-i="${o.i}" aria-label="Remove option ${o.k}">×</button>` : `<span></span>`}</div>
-        <div class="dates">
-          <div class="field"><label for="opt-start-${o.i}">Check-in</label><input id="opt-start-${o.i}" data-opt-start="${o.i}" type="date" value="${esc(o.start)}" min="2027-01-01" max="2027-12-31"></div>
-          <div class="field"><label for="opt-nights-${o.i}">Nights</label><input id="opt-nights-${o.i}" data-opt-nights="${o.i}" type="number" inputmode="numeric" min="1" max="30" value="${o.n > 0 ? o.n : ""}"></div>
-        </div>
-        ${o.n > 0 ? `<div class="small muted">Check-out ${esc(fmt(o.end, { weekday: "short", month: "short", day: "numeric" }))} · ${mix.we} Fri/Sat night${mix.we === 1 ? "" : "s"} · ${parkDays} park + ${Math.max(0, off)} off days</div>
-        ${wx && wx.known.length ? `<div class="small">${I.sun} Usually ${wx.hiMin === wx.hiMax ? wx.hiMax : `${wx.hiMin}–${wx.hiMax}`}° / ${wx.loMin}–${wx.loMax}° · ${wx.rainAvg}% rain chance · ~${Math.round(wx.rainDays)} rainy day${Math.round(wx.rainDays) === 1 ? "" : "s"}</div>` : ""}
-        ${isTrip ? `<span class="pill good">Our trip dates</span>` : canWrite ? `<div><button class="btn quiet sm" data-act="use-dates" data-i="${o.i}">Make these our trip dates</button></div>` : ""}`
-        : `<div class="small" style="color:var(--bad)">Pick a check-in and number of nights.</div>`}
-      </div>`;
-    };
+    const weightsCard = `<section class="card stack weights"><div class="row between"><h3>What matters most?</h3><span class="muted small">Tap the dots</span></div>
+      ${FACTORS.map(([k, label]) => `<div class="factor"><span>${label}</span><span class="dots" role="group" aria-label="How much ${label.toLowerCase()} counts">${[1, 2, 3, 4, 5].map((i) =>
+        `<button type="button" class="${i <= W[k] ? "on" : ""}" data-act="weight" data-k="${k}" data-n="${i}" aria-label="${label}: ${i} of 5" aria-pressed="${i === W[k]}" ${canWrite ? "" : "disabled"}></button>`).join("")}</span></div>`).join("")}
+      <div class="muted small">Tap the last filled dot again to lower it, down to zero.</div></section>`;
 
-    const rows = [];
-    Object.entries(charts()).forEach(([rid, r]) => (r.rooms || []).forEach((room) => {
-      const ppp = Number(r.ppp) || 0;
-      const per = live.map((o) => { const p = stayPoints(room, o.start, o.end), total = p.pts * ppp; return { o, pts: p.pts, missing: p.missing, total, left: t.budget - t.other - total }; });
-      rows.push({ rid, r, room, ppp, per });
-    }));
-    const f = view.cmpFilter;
-    let list = rows;
-    if (f === "five") list = list.filter((x) => x.room.sleeps >= 5);
-    if (f === "studio") list = list.filter((x) => x.room.size === "Studio" && x.room.sleeps >= 5);
-    if (f === "1br") list = list.filter((x) => x.room.size !== "Studio");
-    if (f === "walk") list = list.filter((x) => x.r.walk);
-    const sortIdx = Math.max(0, live.findIndex((o) => o.i === view.cmpFocus));
-    list.sort((a, b) => ((a.per[sortIdx] || {}).total || 0) - ((b.per[sortIdx] || {}).total || 0));
-    const chip = (k, label) => `<button class="chip" data-act="cmp-filter" data-k="${k}" aria-pressed="${f === k}">${label}</button>`;
-    const anyMissing = rows.some((x) => x.per.some((p) => p.missing));
+    const rankList = `<section class="card stack"><div class="row between"><h3>Ranking</h3><span class="muted small">Tap up to 3 to compare</span></div>
+      ${ranked.map((r, i) => { const j = ids.indexOf(r.id); return `<button type="button" class="rank" data-act="cmp-toggle" data-id="${esc(r.id)}" aria-pressed="${j >= 0}" ${j >= 0 ? `style="--opt:${OPT[j].color}"` : ""}>
+        <span class="n">${j >= 0 ? `<b class="opt-tag sm">${OPT[j].k}</b>` : i + 1}</span>
+        <span style="min-width:0"><b>${esc(r.name)}</b><span class="muted small" style="display:block">${esc(span(r.start, r.end))} · ${Number(r.total) ? money(r.total) : "no price"}</span></span>
+        ${scoreBadge(r.sc.overall)}</button>`; }).join("")}</section>`;
 
-    const cards = list.map((x) => {
-      const min = Math.min(...x.per.map((p) => p.total));
-      const cells = x.per.map((p) => `<div class="optcell" style="--opt:${p.o.color}">
-          <div class="row between"><b class="opt-tag sm">${p.o.k}</b>${x.per.length > 1 && p.total === min ? `<span class="pill good">Cheapest</span>` : ""}</div>
-          <strong class="num">${money(p.total)}</strong>
-          ${stayMeter(p.total, t.budget - t.other, true)}
-          <span class="muted small num">${p.pts} pts<span class="nn"> · ${p.o.n} nights</span>${p.missing ? ` (+${p.missing} uncharted)` : ""}</span>
-          <span class="small" style="font-weight:800;color:var(--${p.left >= 0 ? "good" : "bad"})">${p.left >= 0 ? `${money(p.left)} under` : `${money(-p.left)} over`}</span>
-          ${canWrite ? `<button class="btn quiet sm" data-act="cmp-save" data-rid="${esc(x.rid)}" data-room="${esc(x.room.id)}" data-i="${p.o.i}" aria-label="Add option ${p.o.k} for ${esc(x.r.name)} to Resorts">${I.plus} Add</button>` : ""}
-        </div>`).join("");
-      return `<article class="card resort cmp">
-        <div><h3>${esc(x.r.name)}</h3><div class="muted small">${esc(x.room.label)}${x.r.vibe ? " · " + esc(x.r.vibe) : ""}</div></div>
-        <div class="tags">
-          <span class="pill ${x.room.sleeps >= 5 ? "plain" : "bad"}">Sleeps ${x.room.sleeps}</span>${pcCount(x.r.name)}
-          <span class="pill plain">${esc(x.room.kitchen)}</span>
-          ${x.r.walk ? `<span class="pill good">Walk to EPCOT &amp; Hollywood Studios</span>` : ""}
-        </div>
-        <div class="optgrid" style="--cols:${x.per.length}">${cells}</div>
-        <label class="ppp">$<input type="number" inputmode="decimal" step="0.5" min="0" value="${esc(x.ppp)}" data-ppp="${esc(x.rid)}" aria-label="Dollars per point at ${esc(x.r.name)}" ${canWrite ? "" : "disabled"}> per point</label>
-      </article>`;
-    }).join("");
+    // One row per thing to compare. best: "high" or "low" marks the winner when there's more than one option.
+    const perNight = (r) => (Number(r.total) || 0) / (nights(r.start, r.end) || 1);
+    const rows = [
+      ["Overall score", (r) => r.sc.overall, "high", (r) => scoreBadge(r.sc.overall)],
+      ["Total price", (r) => Number(r.total) || null, "low", (r) => `<strong class="num">${Number(r.total) ? money(r.total) : "–"}</strong>`],
+      ["Per night", (r) => (Number(r.total) ? perNight(r) : null), "low", (r) => `<span class="num">${Number(r.total) ? money(perNight(r)) : "–"}</span>`],
+      ["Budget", (r) => (Number(r.total) ? r.sc.left : null), "high", (r) => Number(r.total) ? `<span class="small" style="font-weight:800;color:var(--${r.sc.left >= 0 ? "good" : "bad"})">${r.sc.left >= 0 ? `${money(r.sc.left)} under` : `${money(-r.sc.left)} over`}</span>${stayMeter(Number(r.total), t.budget - t.other, true)}` : "–"],
+      ["How much we want it", (r) => Number(r.desire) || null, "high", (r) => `${starsHTML(r, true)}<span class="small">${esc(DESIRE[Number(r.desire) || 0])}</span>`],
+      ["Dates", null, null, (r) => `<span class="small" style="font-weight:800">${esc(span(r.start, r.end))}</span><span class="muted small">${nights(r.start, r.end)} nights</span>`],
+      ["Usual highs", (r) => (r.sc.wx && r.sc.wx.known.length ? r.sc.wx.hiAvg : null), "low", (r) => r.sc.wx && r.sc.wx.known.length ? `<strong class="num">${r.sc.wx.hiMin === r.sc.wx.hiMax ? r.sc.wx.hiMax : `${r.sc.wx.hiMin}–${r.sc.wx.hiMax}`}°</strong><span class="muted small">lows ${r.sc.wx.loMin}–${r.sc.wx.loMax}°</span>` : "–"],
+      ["Rain", (r) => (r.sc.wx && r.sc.wx.known.length ? r.sc.wx.rainAvg : null), "low", (r) => r.sc.wx && r.sc.wx.known.length ? `<strong class="num">${r.sc.wx.rainAvg}%</strong><span class="muted small">~${Math.round(r.sc.wx.rainDays)} rainy days</span>` : "–"],
+      ["Seasons", null, null, (r) => seasonPills(r.start, r.end)],
+      ["Room", null, null, (r) => `<span class="small" style="font-weight:800">${esc(r.size || "")}</span><span class="muted small">Sleeps ${esc(r.sleeps)} · ${esc(r.kitchen)}</span>`],
+      ["Walk to EPCOT & Studios", (r) => (r.walk ? 1 : 0), "high", (r) => r.walk ? `<span class="pill good">Yes</span>` : `<span class="muted small">No</span>`],
+      ["Pros & cons", null, null, (r) => pcCount(r.name) || `<span class="muted small">None yet</span>`],
+    ];
+    const grid = cols.length ? rows.map(([label, val, dir, cell]) => {
+      const vals = val ? cols.map(val) : [], known = vals.filter((v) => v != null);
+      const win = dir && cols.length > 1 && known.length > 1 && new Set(known).size > 1 ? (dir === "high" ? Math.max(...known) : Math.min(...known)) : null;
+      return `<div class="cmprow"><div class="eyebrow">${esc(label)}</div><div class="optgrid" style="--cols:${cols.length}">${cols.map((r, i) => `<div class="optcell" style="--opt:${r.color}">
+        ${cell(r)}${win != null && vals[i] === win ? `<span class="best">★ Best</span>` : ""}</div>`).join("")}</div></div>`;
+    }).join("") : "";
+    const heads = `<div class="optgrid" style="--cols:${cols.length}">${cols.map((r) => `<div class="optcell" style="--opt:${r.color}">
+      <div class="row between"><b class="opt-tag sm">${r.k}</b>${canWrite ? `<button class="x" data-act="cmp-toggle" data-id="${esc(r.id)}" aria-label="Take ${esc(r.name)} out of the comparison">×</button>` : ""}</div>
+      <b>${esc(r.name)}</b><span class="muted small">${esc(r.room)}</span>
+      ${s.pickId === r.id ? `<span class="pill picked-badge">Our pick</span>` : canWrite ? `<button class="btn quiet sm" data-act="pick" data-id="${esc(r.id)}">Make it our pick</button>` : ""}</div>`).join("")}</div>`;
 
-    const focusChips = live.length > 1 ? `<div class="toolbar" role="group" aria-label="Show details for">${live.map((o) => `<button class="chip" data-act="cmp-focus" data-i="${o.i}" aria-pressed="${o.i === view.cmpFocus}">Option ${o.k}</button>`).join("")}</div>` : "";
-
-    return `<div class="row between"><h2>Compare dates</h2></div>
-      <div class="muted">Set up to three date options. Every resort's real points cost shows side by side, with how each fits the ${money(t.budget)} budget once everything else (${money(t.other)}) is in.</div>
-      <section class="optrow">${opts.map(optCard).join("")}</section>
-      ${live.length ? `${focusChips}${weatherCard(focus.start, focus.end)}` : ""}
-      ${live.length ? `<div class="toolbar" role="group" aria-label="Filter rooms">${chip("five", "Sleeps 5")}${chip("studio", "5th-sleeper studios")}${chip("1br", "1 bedrooms &amp; cabins")}${chip("walk", "Walk to parks")}${chip("all", "Every room")}</div>
-      <div class="muted small">Sorted by option ${OPT[view.cmpFocus].k}, cheapest first.${live.length > 1 ? " Tap an option above to sort by it." : ""}</div>
-      ${anyMissing ? `<div class="soft small">Some nights fall outside 2027. Only the 2027 points charts are out, so those nights aren't counted.</div>` : ""}
-      ${cards || `<div class="card empty">Nothing matches this filter.</div>`}` : ""}
-      <div class="src">Points: ${link(cal.url, cal.source)}. Each night is priced by its season and whether it's a Friday or Saturday night. Matches all 11 rental quotes we had (e.g. BoardWalk studio Sep 19 – Oct 1 = 126 pts). Chart PDFs: ${Object.values(charts()).map((r) => link(r.url, r.name)).join(", ")}. $ per point is from our rental quotes; tap to change it.</div>`;
+    return `<div class="row between"><h2>Compare</h2>${canWrite ? `<button class="btn ghost sm" data-act="tab" data-k="resorts">${I.plus} Add options</button>` : ""}</div>
+      <div class="muted">Your options from the Resorts tab, best score first. Pick up to three to line up side by side.</div>
+      ${weightsCard}
+      ${rankList}
+      ${cols.length ? `<section class="card stack">${heads}${grid}</section>` : `<div class="card empty">Tap options in the ranking to compare them.</div>`}
+      <div class="src">${scoreHow()}</div>`;
   }
 
   // How much of the money left for a resort (budget minus every other cost) a stay uses.
@@ -993,7 +1039,8 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       let input;
       if (f.type === "select") input = `<select id="${id}">${f.options.map((o) => { const [val, lab] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(val)}" ${String(v) === String(val) ? "selected" : ""}>${esc(lab)}</option>`; }).join("")}</select>`;
       else if (f.type === "textarea") input = `<textarea id="${id}">${esc(v)}</textarea>`;
-      else input = `<input id="${id}" type="${f.type || "text"}" value="${esc(v)}" ${f.type === "number" ? 'inputmode="decimal" step="any"' : ""} ${f.placeholder ? `placeholder="${esc(f.placeholder)}"` : ""}>`;
+      else input = `<input id="${id}" type="${f.type || "text"}" value="${esc(v)}" ${f.type === "number" ? 'inputmode="decimal" step="any"' : ""} ${f.placeholder ? `placeholder="${esc(f.placeholder)}"` : ""} ${f.list ? `list="${id}-list" autocomplete="off"` : ""}>`
+        + (f.list ? `<datalist id="${id}-list">${f.list.map((o) => `<option value="${esc(o)}"></option>`).join("")}</datalist>` : "");
       return `<div class="field ${f.full ? "full" : ""}"><label for="${id}">${esc(f.label)}</label>${input}</div>`;
     }).join("");
     root.innerHTML = `<div class="scrim" data-act="close-sheet"><form class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
@@ -1019,18 +1066,18 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   }
   function closeSheet() { document.getElementById("sheet-root").innerHTML = ""; }
 
-  const RESORT_FIELDS = [
-    { k: "name", label: "Resort", full: true },
-    { k: "room", label: "Room type", full: true },
-    { k: "size", label: "Size", type: "select", options: SIZES },
-    { k: "sleeps", label: "Sleeps", type: "number" },
-    { k: "kitchen", label: "Kitchen", type: "select", options: KITCHENS },
-    { k: "source", label: "Booked through", type: "select", options: SOURCES },
+  const resortNames = () => [...new Set([...Object.values(charts()).map((c) => c.name), ...entries("resorts").map((r) => r.name)].filter(Boolean))].sort();
+  const RESORT_FIELDS = () => [
+    { k: "name", label: "Resort", full: true, list: resortNames(), placeholder: "Start typing…" },
+    { k: "room", label: "Room type", full: true, placeholder: "Deluxe Studio, Resort View" },
     { k: "start", label: "Check-in", type: "date" },
     { k: "end", label: "Check-out", type: "date" },
     { k: "total", label: "Total price ($)", type: "number" },
-    { k: "points", label: "Points", type: "number" },
-    { k: "ppp", label: "$ per point", type: "number" },
+    { k: "source", label: "Found it through", type: "select", options: SOURCES },
+    { k: "desire", label: "How much do we want it?", type: "select", full: true, options: DESIRE.map((d, i) => [String(i), i ? `${"★".repeat(i)}${"☆".repeat(5 - i)}  ${d}` : d]) },
+    { k: "size", label: "Size", type: "select", options: SIZES },
+    { k: "sleeps", label: "Sleeps", type: "number" },
+    { k: "kitchen", label: "Kitchen", type: "select", options: KITCHENS },
     { k: "vibe", label: "Vibe", placeholder: "Florida beach, Italy…" },
     { k: "walk", label: "Walk to EPCOT & Hollywood Studios", type: "check", full: true },
     { k: "eeh", label: "Extended evening hours", type: "check", full: true },
@@ -1039,9 +1086,15 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   ];
   function editResort(id) {
     const s = settings();
-    const cur = id ? state.resorts[id] : { size: "Studio", sleeps: 5, kitchen: "Kitchenette", source: "DVC rental", start: s.start, end: s.end, eeh: true, hearts: [] };
-    openSheet(id ? "Edit resort" : "Add a resort option", RESORT_FIELDS, cur,
-      (v) => put("resorts", id || uid(), { ...cur, ...v, hearts: [...(cur.hearts || [])] }),
+    const cur = id ? state.resorts[id] : { size: "Studio", sleeps: 5, kitchen: "Kitchenette", source: "DVC rental", start: s.start, end: s.end, eeh: true, desire: 0, hearts: [] };
+    openSheet(id ? "Edit option" : "Add a resort option", RESORT_FIELDS(), { ...cur, desire: String(Number(cur.desire) || 0) },
+      (v) => {
+        const next = { ...cur, ...v, desire: Number(v.desire) || 0, hearts: [...(cur.hearts || [])] };
+        // A new option for a DVC resort we know picks up its walkability and vibe.
+        const ref = Object.values(charts()).find((c) => c.name.toLowerCase() === next.name.toLowerCase());
+        if (!id && ref) { next.walk = next.walk || !!ref.walk; next.vibe = next.vibe || ref.vibe || ""; }
+        put("resorts", id || uid(), next);
+      },
       id ? () => { remove("resorts", id); if (s.pickId === id) setSettings({ pickId: "" }); } : null);
   }
   function setSettings(patch) { put("trip", "settings", { ...settings(), ...patch }); }
@@ -1105,8 +1158,11 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     if (act === "tab") { view.tab = el.dataset.k; store.set(LS_KEY + ":tab", view.tab); render(); window.scrollTo({ top: 0 }); return; }
     if (act === "filter") { view.filter = el.dataset.k; render(); return; }
     if (act === "theme") { setTheme(isDark() ? "light" : "dark"); return; }
-    if (act === "cmp-filter") { view.cmpFilter = el.dataset.k; render(); return; }
-    if (act === "cmp-focus") { view.cmpFocus = Number(el.dataset.i); render(); return; }
+    if (act === "cmp-toggle") {
+      // Up to three at a time; adding a fourth drops the oldest.
+      const ids = cmpIds(rankedOptions()), i = ids.indexOf(id);
+      setCmpIds(i >= 0 ? ids.filter((x) => x !== id) : [...ids, id].slice(-3)); return;
+    }
     if (act === "news-tag") { view.newsTag = el.dataset.k; render(); return; }
     if (!canWrite) return;
     if (act === "pc-add") {
@@ -1128,19 +1184,9 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       put("budget", id, { ...cur, amount: Math.round(e.mid), status: "Estimate", note: `${s.tixDays}-day tickets, ${s.tixAdults} adult-price + ${s.tixKids} child, with tax. Formula estimate from Disney's 2027 lowest prices; swap in the real total when we buy.` });
       toast("Ticket estimate added to the budget"); return;
     }
-    if (act === "use-dates") { const o = cmpOpts()[Number(el.dataset.i)]; setSettings({ start: o.start, end: o.end }); toast("Trip dates updated!"); return; }
-    if (act === "opt-add") {
-      const i = Number(el.dataset.i), prev = cmpOpts()[i - 1] || cmpOpts()[0], k = nights(prev.start, prev.end) || 12;
-      setOpt(i, { start: prev.start || settings().start, end: addDays(prev.start || settings().start, k) }); return;
-    }
-    if (act === "opt-clear") { setOpt(Number(el.dataset.i), { start: "", end: "" }); return; }
-    if (act === "cmp-save") {
-      const r = charts()[el.dataset.rid], room = (r.rooms || []).find((x) => x.id === el.dataset.room); if (!room) return;
-      const { start, end } = cmpOpts()[Number(el.dataset.i)], p = stayPoints(room, start, end), ppp = Number(r.ppp) || 0;
-      put("resorts", uid(), { name: r.name, room: room.label, size: room.size, sleeps: room.sleeps, kitchen: room.kitchen, start, end, total: p.pts * ppp, points: p.pts, ppp,
-        source: "DVC rental", walk: !!r.walk, eeh: true, vibe: r.vibe || "", notes: "Priced from the official 2027 DVC points chart.", hearts: [], out: false });
-      toast(`Added ${r.name} to Resorts`); return;
-    }
+    // Tapping the current star (or the last filled weight dot) again steps it down, so it can go back to zero.
+    if (act === "stars") { const cur = state.resorts[id], n = Number(el.dataset.n); put("resorts", id, { ...cur, desire: Number(cur.desire) === n ? n - 1 : n }); return; }
+    if (act === "weight") { const W = weights(), k = el.dataset.k, n = Number(el.dataset.n); setSettings({ scoreW: { ...W, [k]: W[k] === n ? n - 1 : n } }); return; }
     if (act === "heart") {
       const c = el.dataset.c, cur = state[c][id]; const h = [...(cur.hearts || [])];
       const i = h.indexOf(me); if (i >= 0) h.splice(i, 1); else h.push(me);
@@ -1160,17 +1206,9 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   document.addEventListener("change", (e) => {
     const el = e.target;
     if (el.id === "sort") { view.sort = el.value; render(); return; }
-    // Check-in and nights set check-out. Moving check-in keeps the same number of nights.
-    if (el.dataset.optStart) { const i = Number(el.dataset.optStart), o = cmpOpts()[i], k = nights(o.start, o.end); if (el.value) setOpt(i, { start: el.value, end: addDays(el.value, k > 0 ? k : 12) }); else render(); return; }
-    if (el.dataset.optNights) { const i = Number(el.dataset.optNights), k = Math.round(Number(el.value)); if (k >= 1 && k <= 30) setOpt(i, { end: addDays(cmpOpts()[i].start, k) }); else render(); return; }
     if ((el.id === "tix-ad" || el.id === "tix-ch") && canWrite) {
       const v = Math.max(0, Math.round(Number(el.value) || 0));
       setSettings(el.id === "tix-ad" ? { tixAdults: v } : { tixKids: v }); return;
-    }
-    if (el.dataset.ppp && canWrite) {
-      const rid = el.dataset.ppp, v = Number(el.value);
-      if (!(v > 0)) { render(); return; }
-      put("dvc", rid, { ...charts()[rid], ppp: v });
     }
   });
   document.addEventListener("keydown", (e) => {
