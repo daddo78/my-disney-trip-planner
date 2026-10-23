@@ -8,7 +8,7 @@ Live at **https://dtp.ondorilabo.com**. Both phones see the same plan, and chang
 - **Resorts**: one card per option (resort, dates, and the price we found). Perks and amenities are free tags. Icons flag hot dates, rainy season and hurricane season, from the dates. A 1–5 star "how much we want it" rating, pros and cons, points with a receipt of where they came from (stars, nights, budget, heat, perks, amenities, pros and cons), and "our pick".
 - **Compare**: every option ranked by points, and up to three options side by side: price, per night, budget, rating, dates, usual highs, rain, seasons, room, walk to the parks, pros and cons.
 - **Plan**: Day 1, Day 2… added one at a time (no dates, since the trip length isn't settled). "Reorder days" opens a compact list (one line per day) to drag days into a new order. Deleting a day moves the later ones up. Each day is a park (the four Disney parks, Universal, Disney Springs) or a rest or travel day, with a schedule of rides, meals and shows by time. Dreams for that park are suggested as you type.
-- **Budget**: one amount per category that we set ourselves (resort, tickets, travel, food, mugs, fun, other), against the total budget. Left blank, the resort line uses our pick's price.
+- **Budget**: budget items we add ourselves (name, amount, category for the color, note, estimate or not), against the total budget. Amounts change right in the list; tap a name to rename, move or delete. With no resort item, the resort row uses our pick's price.
 - **Dream list**: rides, snacks and moments by park.
 - **To-do**: booking windows and reminders, dated by counting back from check-in.
 - **News**: the full Disney World news list with filters (also a card on Home).

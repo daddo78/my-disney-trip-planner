@@ -281,6 +281,9 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
 .src a { color: inherit; }
 .amt { display: inline-flex; align-items: center; gap: 4px; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
 .amt input { width: 104px; border: 2px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 8px 10px; font: inherit; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.bname { border: 0; background: transparent; padding: 0; color: var(--ink); text-align: left; display: inline-flex; align-items: center; gap: 6px; font: inherit; }
+.bname svg { width: 14px; height: 14px; color: var(--muted); flex: none; }
+@media (max-width: 480px) { .amt input { width: 88px; padding: 8px; } }
 .amt input::placeholder { color: var(--muted); opacity: .7; }
 .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pc-col { background: var(--surface-2); border-radius: 14px; padding: 10px 12px; min-width: 0; border-top: 4px solid var(--good); }
@@ -603,7 +606,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   function totals() {
     const s = settings();
     const pick = s.pickId && state.resorts[s.pickId] ? { id: s.pickId, ...state.resorts[s.pickId] } : null;
-    // One amount per category (budget/<cat>). Older line items in the same category still add up until that category is edited.
+    // Budget items (budget/<id>) add up by category; a category can have several.
     const items = entries("budget");
     const byCat = {};
     items.forEach((i) => { const c = CATS[i.cat] ? i.cat : "other"; byCat[c] = (byCat[c] || 0) + (Number(i.amount) || 0); });
@@ -816,7 +819,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     // Keep a half-typed pro/con or budget amount when a live update re-renders the page.
     const ae = document.activeElement, ds = ae && ae.dataset ? ae.dataset : {};
     const typing = ds.pcInput ? { sel: `[data-pc-input="${ds.pcInput}"]`, value: ae.value, keepEmpty: false }
-      : ds.cat ? { sel: `[data-cat="${ds.cat}"]`, value: ae.value, keepEmpty: true } : null;
+      : ds.item ? { sel: `[data-item="${ds.item}"]`, value: ae.value, keepEmpty: true } : null;
     app.innerHTML = top + body;
     if (typing && (typing.value || typing.keepEmpty)) { const el = app.querySelector(typing.sel); if (el) { el.value = typing.value; el.focus(); } }
   }
@@ -1026,41 +1029,63 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     return `<div class="stay-meter"><div class="row between small"><span class="muted">Share of the ${money(Math.max(0, room))} for a resort</span><b style="color:var(--${tone})">${isFinite(share) ? Math.round(share * 100) + "%" : "Over"}</b></div>${bar}</div>`;
   }
 
-  // One row per category with an amount she types in. The resort row also shows our pick, to compare against.
+  // One row per budget item she adds (budget/<id>), sorted by category. Amounts edit in place; the pencil renames, moves or deletes.
+  // With no resort item, a stand-in resort row uses our pick's price (typing an amount there saves it as budget/stay).
+  const catOf = (i) => (CATS[i.cat] ? i.cat : "other");
   function budgetView() {
-    const t = totals(), hasDoc = (c) => t.items.some((i) => (CATS[i.cat] ? i.cat : "other") === c);
-    const rows = Object.keys(CATS).map((c) => {
-      const amt = t.byCat[c] || 0, share = t.budget > 0 && amt ? `${Math.round((amt / t.budget) * 100)}% of the budget` : "";
-      let sub = share;
-      if (c === "stay") {
-        if (!t.pick) sub = `No resort picked yet. <button class="btn quiet sm" data-act="tab" data-k="dates" style="padding:0">Compare options</button>`;
-        else if (t.stayFromPick) sub = `Using our pick, ${esc(t.pick.name)}${share ? " · " + share : ""}`;
-        else {
-          const d = amt - (Number(t.pick.total) || 0);
-          sub = `Our pick, ${esc(t.pick.name)}, is ${money(t.pick.total)} (${d >= 0 ? `${money(d)} under` : `<b style="color:var(--bad)">${money(-d)} over</b>`})${share ? " · " + share : ""}`;
-        }
-      }
-      const val = hasDoc(c) ? String(Math.round(amt)) : "";
-      const ph = c === "stay" && t.pick ? String(Math.round(Number(t.pick.total) || 0)) : "0";
+    const t = totals(), order = Object.keys(CATS);
+    const items = [...t.items].sort((a, b) => order.indexOf(catOf(a)) - order.indexOf(catOf(b)));
+    const hasStay = items.some((i) => catOf(i) === "stay");
+    const staySub = (amt) => {
+      if (!t.pick) return `No resort picked yet. <button class="btn quiet sm" data-act="tab" data-k="dates" style="padding:0">Compare options</button>`;
+      if (!hasStay) return `Using our pick, ${esc(t.pick.name)}`;
+      const d = amt - (Number(t.pick.total) || 0);
+      return `Our pick, ${esc(t.pick.name)}, is ${money(t.pick.total)} (${d >= 0 ? `${money(d)} under` : `<b style="color:var(--bad)">${money(-d)} over</b>`})`;
+    };
+    // Tapping the name opens the item to rename, move or delete it (no separate pencil, so names have room on a phone).
+    const row = (id, c, label, amt, sub, ph) => {
+      const name = canWrite && id !== "new-stay" ? `<button class="bname" data-act="edit-budget" data-id="${id}"><span class="t">${esc(label)}</span>${I.pencil}</button>` : `<div class="t">${esc(label)}</div>`;
       return `<div class="item"><span class="dot" style="background:${CATS[c].color}"></span>
-        <div><div class="t">${esc(CATS[c].label)}</div>${sub ? `<div class="muted small">${sub}</div>` : ""}</div>
-        <label class="amt">$<input type="number" inputmode="numeric" min="0" step="50" data-cat="${c}" value="${esc(val)}" placeholder="${esc(ph)}" aria-label="${esc(CATS[c].label)} budget" ${canWrite ? "" : "disabled"}></label></div>`;
-    }).join("");
-    return `<h2>Budget</h2>
-      <div class="muted">Set how much we want to spend on each part of the trip.</div>
+        <div>${name}${sub ? `<div class="muted small">${sub}</div>` : ""}</div>
+        <label class="amt">$<input type="number" inputmode="numeric" min="0" step="50" data-item="${id}" value="${amt == null ? "" : esc(String(Math.round(Number(amt) || 0)))}" placeholder="${esc(ph || "0")}" aria-label="${esc(label)} amount" ${canWrite ? "" : "disabled"}></label></div>`;
+    };
+    const rows = (hasStay ? "" : row("new-stay", "stay", CATS.stay.label, null, staySub(0), t.pick ? String(Math.round(Number(t.pick.total) || 0)) : "0"))
+      + items.map((i) => {
+        const c = catOf(i), label = i.label || CATS[c].label;
+        const bits = [label !== CATS[c].label ? esc(CATS[c].label) : "", i.status === "Estimate" ? `<span class="pill warn kind">Estimate</span>` : "", c === "stay" ? staySub(Number(i.amount) || 0) : "", i.note ? esc(i.note) : ""].filter(Boolean);
+        return row(i.id, c, label, i.amount ?? 0, bits.join(" · "));
+      }).join("");
+    return `<div class="row between"><h2>Budget</h2>${canWrite ? `<button class="btn sm" data-act="add-budget">${I.plus} Add an item</button>` : ""}</div>
+      <div class="muted">Add what we'll spend on, from park tickets to a Universal day. Change an amount right in the list; tap a name to rename, move or delete it.</div>
       <section class="card stack">${leftHTML(t)}${meterHTML(t)}
         ${t.left < 0 ? `<div class="soft small">The categories add up to <b style="color:var(--bad)">${money(-t.left)}</b> more than the budget.</div>` : `<div class="soft small">Not set aside for anything yet: <b style="color:var(--good)">${money(t.left)}</b>.</div>`}
         ${canWrite ? `<div><button class="btn ghost sm" data-act="edit-trip">Change total budget</button></div>` : ""}</section>
       <section class="card"><div class="list">${rows}</div></section>
       <div class="src">The Resorts and Compare tabs score each option's price against the resort line. Left blank, it uses our pick's price, and options are scored against whatever the other lines leave.</div>`;
   }
-  // Saving a category replaces any older line items in it with the one amount.
-  function setCatBudget(c, raw) {
-    const items = entries("budget").filter((i) => (CATS[i.cat] ? i.cat : "other") === c);
-    if (raw === "" && c === "stay") { items.forEach((i) => remove("budget", i.id)); return; }
+  // An amount typed in the list. Clearing the only resort item goes back to using our pick's price.
+  function setItemAmount(id, raw) {
+    if (id === "new-stay") { if (raw !== "") put("budget", "stay", { label: CATS.stay.label, cat: "stay", amount: Math.max(0, Math.round(Number(raw) || 0)) }); return; }
+    const cur = state.budget[id]; if (!cur) return;
+    if (raw === "" && catOf(cur) === "stay" && entries("budget").filter((i) => catOf(i) === "stay").length === 1) { remove("budget", id); return; }
     const amount = Math.max(0, Math.round(Number(raw) || 0));
-    put("budget", c, { label: CATS[c].label, cat: c, amount });
-    items.filter((i) => i.id !== c).forEach((i) => remove("budget", i.id));
+    if (amount !== Number(cur.amount)) put("budget", id, { ...cur, amount });
+  }
+  function editBudget(id) {
+    const cur = id ? state.budget[id] : { cat: "other", amount: 0 };
+    const vals = { ...cur, label: cur.label || CATS[catOf(cur)].label, cat: catOf(cur), estimate: cur.status === "Estimate" };
+    openSheet(id ? "Edit budget item" : "Add a budget item", [
+      { k: "label", label: "What is it?", full: true, placeholder: "Universal tickets" },
+      { k: "amount", label: "Amount ($)", type: "number" },
+      { k: "cat", label: "Category (sets its color)", type: "select", options: Object.keys(CATS).map((c) => [c, CATS[c].label]) },
+      { k: "note", label: "Note", full: true, placeholder: "2-park, 1-day, 5 people" },
+      { k: "estimate", label: "This is an estimate", type: "check", full: true },
+    ], vals, (v) => {
+      const next = { ...cur, label: v.label, cat: v.cat, amount: Math.max(0, Math.round(v.amount || 0)), note: v.note };
+      delete next.estimate;
+      if (v.estimate) next.status = "Estimate"; else delete next.status;
+      put("budget", id || uid(), next);
+    }, id ? () => remove("budget", id) : null);
   }
 
   function dreamsView() {
@@ -1520,6 +1545,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "add-resort" || act === "edit-resort") return editResort(id);
     if (act === "add-wish" || act === "edit-wish") return editWish(id);
     if (act === "add-todo" || act === "edit-todo") return editTodo(id);
+    if (act === "add-budget" || act === "edit-budget") return editBudget(id);
     if (act === "edit-day") return editDay(el.dataset.k);
     if (act === "add-day") return editDay("d" + (dayCount() + 1));
     if (act === "days-order") return showDayOrder();
@@ -1529,11 +1555,11 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   document.addEventListener("change", (e) => {
     const el = e.target;
     if (el.id === "sort") { view.sort = el.value; render(); return; }
-    if (el.dataset.cat && canWrite) { setCatBudget(el.dataset.cat, el.value.trim()); return; }
+    if (el.dataset.item && canWrite) { setItemAmount(el.dataset.item, el.value.trim()); return; }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeSheet();
-    if (e.key === "Enter" && e.target.dataset && e.target.dataset.cat) { e.preventDefault(); e.target.blur(); }
+    if (e.key === "Enter" && e.target.dataset && e.target.dataset.item) { e.preventDefault(); e.target.blur(); }
     // Enter in a pro/con box adds it as a pro; the − Con button is right beside it.
     if (e.key === "Enter" && e.target.dataset && e.target.dataset.pcInput) { e.preventDefault(); const b = e.target.parentElement.querySelector('[data-kind="pros"]'); if (b) b.click(); }
   });
