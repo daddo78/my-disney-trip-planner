@@ -7,9 +7,10 @@ Live at **https://dtp.ondorilabo.com**. Both phones see the same plan, and chang
 - **Home**: countdown to check-in, budget at a glance, our resort pick, usual weather for our dates, what's coming up, and a Disney news card (stories about our resorts first; "More news" opens the full list).
 - **Resorts**: one card per option (resort, dates, and the price we found). Perks and amenities are free tags. Icons flag hot dates, rainy season and hurricane season, from the dates. A 1–5 star "how much we want it" rating, pros and cons, points with a receipt of where they came from (stars, nights, budget, heat, perks, amenities, pros and cons), and "our pick".
 - **Compare**: every option ranked by points, and up to three options side by side: price, per night, budget, rating, dates, usual highs, rain, seasons, room, walk to the parks, pros and cons.
-- **Plan**: Day 1, Day 2… added one at a time (no dates, since the trip length isn't settled). "Reorder days" opens a compact list (one line per day) to drag days into a new order. Deleting a day moves the later ones up. Each day is a park (the four Disney parks, Universal, Disney Springs) or a rest or travel day, with a schedule of rides, meals and shows by time. Dreams for that park are suggested as you type.
+- **Plan**: Day 1, Day 2… added one at a time (no dates, since the trip length isn't settled). "Reorder days" opens a compact list (one line per day) to drag days into a new order. Deleting a day moves the later ones up. Each day is a park (the four Disney parks, Universal, Disney Springs) or a rest or travel day, with a schedule of rides, meals and shows by time. Dreams and food for that park are suggested as you type.
 - **Budget**: budget items we add ourselves (name, amount, category for the color, note, estimate or not), against the total budget. Amounts change right in the list; tap a name to rename, move or delete. With no resort item, the resort row uses our pick's price.
 - **Dream list**: rides, snacks and moments by park.
+- **Food**: meals and snacks by park, plus resort meals and room meals, each with an optional meal (breakfast, lunch, dinner, snack) and note.
 - **To-do**: booking windows and reminders, dated by counting back from check-in.
 - **News**: the full Disney World news list with filters (also a card on Home).
 - The bar shows five tabs plus **More**, like Teams; Reorder in More picks which five (saved per phone).
@@ -25,7 +26,7 @@ wrangler.jsonc             Worker config: D1 binding, daily cron, custom domain 
 tools/refresh-news.js      the same news logic as a local script (used before the Worker had it)
 ```
 
-- **Storage:** D1 database `disney-trip-planner`, table `docs (coll, id, data, deleted, updated)`. Collections: `trip`, `resorts`, `budget`, `wishes`, `todos`, `dvc`, `ref`, `proscons`, `news`, `days`. `updated` is a counter that only goes up, so each phone asks for "what changed since n" every 5 seconds.
+- **Storage:** D1 database `disney-trip-planner`, table `docs (coll, id, data, deleted, updated)`. Collections: `trip`, `resorts`, `budget`, `wishes`, `food`, `todos`, `dvc`, `ref`, `proscons`, `news`, `days`. `updated` is a counter that only goes up, so each phone asks for "what changed since n" every 5 seconds.
 - **API:** `GET /api/docs?since=n`, `PUT /api/docs/<coll>/<id>`, `DELETE /api/docs/<coll>/<id>`.
 - **No sign-in, by choice:** anyone with the link can read and edit. Each phone picks "Dan" or "Brittany" once, for hearts and pros and cons.
 - **News:** cron `15 11 * * *` UTC (about 7:15 AM Eastern) pulls the RSS feeds, keeps Walt Disney World stories, and drops ones older than 30 days. WDW News Today refuses requests from Cloudflare's servers, so the daily refresh only gets the other three sites.

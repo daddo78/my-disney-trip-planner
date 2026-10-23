@@ -8,7 +8,7 @@
 // No sign-in, by choice: anyone with the link can read and edit.
 // `updated` is a strictly increasing counter, so a phone that asks "what changed since n" never misses a write.
 
-const COLLS = new Set(["trip", "resorts", "budget", "wishes", "todos", "dvc", "ref", "proscons", "news", "days"]);
+const COLLS = new Set(["trip", "resorts", "budget", "wishes", "food", "todos", "dvc", "ref", "proscons", "news", "days"]);
 const ID = /^[A-Za-z0-9_\-.~:@+]{1,200}$/;
 const MAX_BODY = 256 * 1024;
 

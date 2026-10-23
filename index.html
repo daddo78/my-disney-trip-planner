@@ -350,7 +350,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     other: { label: "Other", color: "var(--c-other)" },
   };
   const PARKS = ["Magic Kingdom", "EPCOT", "Hollywood Studios", "Animal Kingdom", "Disney Springs", "Resort & food", "Anything else"];
-  const COLLS = ["trip", "resorts", "budget", "wishes", "todos", "dvc", "ref", "proscons", "news", "days"];
+  const COLLS = ["trip", "resorts", "budget", "wishes", "food", "todos", "dvc", "ref", "proscons", "news", "days"];
 
   // Built-in copy of the reference data. The shared db holds the live copy (dvc/<resort>, ref/seasons2027, ref/weather);
   // this is only used when the page runs on its own or before the db has it.
@@ -404,7 +404,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     ref: { seasons2027: REF.seasons, weather: REF.weather, tickets: REF.tickets },
   };
 
-  const state = { trip: {}, resorts: {}, budget: {}, wishes: {}, todos: {}, dvc: {}, ref: {}, proscons: {}, news: {}, days: {} };
+  const state = { trip: {}, resorts: {}, budget: {}, wishes: {}, food: {}, todos: {}, dvc: {}, ref: {}, proscons: {}, news: {}, days: {} };
   let mode = "starting"; // "shared" | "local"
   let db = null, userCap = null, me = "me", canWrite = true;
   let names = {};
@@ -450,7 +450,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   const CAL = I.cal.replace("<svg", '<svg class="cal" aria-hidden="true"');
   const art = (name, size) => `<img class="art" src="icons/parks/${name}.svg" alt=""${size ? ` width="${size}" height="${size}"` : ""}>`;
   const TABS = [["home", "Home", "castle"], ["resorts", "Resorts", "resort"], ["dates", "Compare", "gold-star"], ["plan", "Plan", "outpost"], ["budget", "Budget", "shopping-bag"],
-    ["dreams", "Dreams", "sorcerer-hat"], ["todo", "To-do", "bell"], ["news", "News", "tv-tower"]];
+    ["dreams", "Dreams", "sorcerer-hat"], ["food", "Food", "pretzel"], ["todo", "To-do", "bell"], ["news", "News", "tv-tower"]];
   // Five tabs fit in the bar; the rest live behind "More". Each phone keeps its own order (Home stays first).
   const BAR = 5;
   function navOrder() {
@@ -462,7 +462,10 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   }
   const tabOf = (k) => TABS.find((t) => t[0] === k);
   const PARK_ART = { "Magic Kingdom": "castle", EPCOT: "spaceship-earth", "Hollywood Studios": "tower-of-terror", "Animal Kingdom": "tree-of-life", "Disney Springs": "shopping-bag", "Resort & food": "dole-whip", "Anything else": "sorcerer-hat",
-    Universal: "globe-plane", "Rest day": "canopy-boat", "Travel day": "vintage-car" };
+    Universal: "globe-plane", "Rest day": "canopy-boat", "Travel day": "vintage-car", "Resort meal": "pot-pie", "Room meal": "spaghetti" };
+  // Where a meal on the Food tab happens: a park, or at the resort (a restaurant there, or cooking in the room).
+  const FOOD_PLACES = ["Magic Kingdom", "EPCOT", "Hollywood Studios", "Animal Kingdom", "Universal", "Disney Springs", "Resort meal", "Room meal"];
+  const MEALS = [["", "Any time"], ["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"], ["snack", "Snack"]];
   // What a day on the Plan tab can be.
   const DAY_PARKS = ["Magic Kingdom", "EPCOT", "Hollywood Studios", "Animal Kingdom", "Universal", "Disney Springs", "Rest day", "Travel day"];
   const OFF_DAYS = ["Rest day", "Travel day"];
@@ -592,7 +595,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   async function resolveNames() {
     if (!userCap) return;
     const ids = new Set();
-    ["resorts", "wishes"].forEach((c) => entries(c).forEach((r) => (r.hearts || []).forEach((h) => ids.add(h))));
+    ["resorts", "wishes", "food"].forEach((c) => entries(c).forEach((r) => (r.hearts || []).forEach((h) => ids.add(h))));
     entries("proscons").forEach((p) => [...(p.pros || []), ...(p.cons || [])].forEach((x) => x.by && ids.add(x.by)));
     ids.add(me);
     const missing = [...ids].filter((i) => !(i in names));
@@ -815,7 +818,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const top = `<div class="topbar"><div class="brand"><img class="logo" src="icons/logo.png" alt="" width="51" height="34"><b>Trip Planner</b></div>
       <div class="top-right"><span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span>
       <button class="theme-btn" data-act="theme" aria-label="${isDark() ? "Switch to light mode" : "Switch to dark mode"}">${isDark() ? I.sun.replace(/14/g, "18") : I.moon}</button></div></div>`;
-    const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, todo: todoView, plan: planView, news: newsView }[view.tab]();
+    const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, food: foodView, todo: todoView, plan: planView, news: newsView }[view.tab]();
     // Keep a half-typed pro/con or budget amount when a live update re-renders the page.
     const ae = document.activeElement, ds = ae && ae.dataset ? ae.dataset : {};
     const typing = ds.pcInput ? { sel: `[data-pc-input="${ds.pcInput}"]`, value: ae.value, keepEmpty: false }
@@ -860,7 +863,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
         <div><button class="btn sm" data-act="tab" data-k="dates">Compare options</button></div></div></div>`;
     const top = rankedOptions().filter((r) => r.sc.overall != null).slice(0, 3);
     const todos = entries("todos").filter((x) => !x.done).map((x) => ({ ...x, d: dueDate(x) })).filter((x) => x.d && x.d >= today()).sort((a, b) => a.d - b.d).slice(0, 3);
-    const wish = entries("wishes");
+    const wish = entries("wishes"), food = entries("food");
     const wx = weatherFor(s.start, s.end);
     return `
       <section class="hero">
@@ -887,7 +890,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
         ${todos.length ? todos.map((x) => { const r = relDays(x.d); return `<div class="row between"><div><b>${esc(x.text)}</b><div class="muted small">${fmt(x.d, { month: "long", day: "numeric", year: "numeric" })}</div></div><span class="pill ${r.cls}">${r.text}</span></div>`; }).join("") : `<div class="muted">Nothing dated coming up.</div>`}
       </section>
       ${newsCard()}
-      <section class="card row between"><div><span class="eyebrow">Dream list</span><div><b class="num">${wish.filter((w) => w.done).length}</b> of <b class="num">${wish.length}</b> done</div></div><button class="btn ghost sm" data-act="tab" data-k="dreams">${art("sorcerer-hat", 20)} Open</button></section>`;
+      <section class="card row between"><div><span class="eyebrow">Dream list</span><div><b class="num">${wish.filter((w) => w.done).length}</b> of <b class="num">${wish.length}</b> done</div></div><button class="btn ghost sm" data-act="tab" data-k="dreams">${art("sorcerer-hat", 20)} Open</button></section>
+      <section class="card row between"><div><span class="eyebrow">Food plan</span><div><b class="num">${food.filter((f) => f.done).length}</b> of <b class="num">${food.length}</b> eaten</div></div><button class="btn ghost sm" data-act="tab" data-k="food">${art("pretzel", 20)} Open</button></section>`;
   }
 
   // Each resort doc is one scenario: a resort, dates, and the price she found. Weather, seasons and the score come from the dates.
@@ -1108,6 +1112,29 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       ${sections || `<div class="card empty"><h3>Nothing on the list yet</h3><div>Start with the one thing you'd be sad to miss.</div>${canWrite ? `<button class="btn" data-act="add-wish">${I.plus} Add a dream</button>` : ""}</div>`}`;
   }
 
+  // Like the dream list, but meals: grouped by park, plus resort restaurants and meals cooked in the room.
+  function foodView() {
+    const all = entries("food");
+    const places = [...FOOD_PLACES, ...new Set(all.map((f) => f.place).filter((p) => p && !FOOD_PLACES.includes(p)))];
+    const mealN = (m) => MEALS.findIndex((x) => x[0] === (m || ""));
+    const sections = places.map((p) => {
+      const rows = all.filter((f) => (f.place || "Room meal") === p).sort((a, b) => (a.done - b.done) || mealN(a.meal) - mealN(b.meal) || (b.hearts || []).length - (a.hearts || []).length);
+      if (!rows.length) return "";
+      return `<section class="card park"><h3>${art(PARK_ART[p] || "pretzel", 32)}${esc(p)}</h3><div class="list">${rows.map((f) => {
+        const mine = (f.hearts || []).includes(me), meal = MEALS.find((x) => x[0] === f.meal);
+        const sub = [f.note, (f.hearts || []).length ? lovedBy(f.hearts) : ""].filter(Boolean).join(" · ");
+        return `<div class="item ${f.done ? "done" : ""}">
+          <button class="check ${f.done ? "on" : ""}" data-act="toggle" data-c="food" data-id="${f.id}" aria-pressed="${!!f.done}" aria-label="Mark eaten" ${canWrite ? "" : "disabled"}>${f.done ? I.tick : ""}</button>
+          <div><div class="t">${esc(f.text)}${meal && meal[0] ? ` <span class="pill">${meal[1]}</span>` : ""}</div>${sub ? `<div class="muted small">${esc(sub)}</div>` : ""}</div>
+          <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="heart ${mine ? "on" : ""}" data-act="heart" data-c="food" data-id="${f.id}" aria-pressed="${mine}" aria-label="Heart" ${canWrite ? "" : "disabled"}>${mine ? I.heart : I.heartO}</button>
+          ${canWrite ? `<button class="icon-btn" data-act="edit-food" data-id="${f.id}" aria-label="Edit">${I.pencil}</button>` : ""}</div></div>`;
+      }).join("")}</div></section>`;
+    }).join("");
+    return `<div class="row between"><h2>Food plan</h2>${canWrite ? `<button class="btn sm" data-act="add-food">${I.plus} Add food</button>` : ""}</div>
+      <div class="muted">Restaurants, snacks and treats in each park, plus meals at the resort and ones we'll make in the room. Heart the must-eats; tick them off on the trip.</div>
+      ${sections || `<div class="card empty"><h3>No food planned yet</h3><div>Start with the snack you'd be saddest to miss.</div>${canWrite ? `<button class="btn" data-act="add-food">${I.plus} Add food</button>` : ""}</div>`}`;
+  }
+
   // ---------- plan: Day 1, Day 2… from check-in to check-out, each a park (or a rest/travel day) and a schedule ----------
   // Days are saved by number (days/d1, d2…), so a plan stays put if the dates move.
   const clock = (t) => { if (!t) return ""; const [h, m] = t.split(":").map(Number); return `${(h % 12) || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
@@ -1229,8 +1256,9 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   function editSlot(dayId, slotId) {
     const day = state.days[dayId] || { park: "", note: "", items: [] }, items = day.items || [];
     const cur = items.find((x) => x.id === slotId) || { kind: OFF_DAYS.includes(day.park) ? "rest" : "ride", time: "" };
-    // Suggest the dreams for that day's park.
-    const dreams = entries("wishes").filter((w) => !day.park || w.park === day.park || (day.park === "Rest day" && w.park === "Resort & food")).map((w) => w.text);
+    // Suggest the dreams and food for that day's park.
+    const dreams = entries("wishes").filter((w) => !day.park || w.park === day.park || (day.park === "Rest day" && w.park === "Resort & food")).map((w) => w.text)
+      .concat(entries("food").filter((f) => !day.park || f.place === day.park || f.place === "Resort meal" || f.place === "Room meal").map((f) => f.text));
     openSheet(slotId ? "Edit plan" : `Add to day ${dayId.slice(1)}`, [
       { k: "text", label: "What are we doing?", full: true, list: dreams, placeholder: dreams.length ? "Start typing, or pick a dream…" : "Seven Dwarfs Mine Train" },
       { k: "time", label: "Time (optional)", type: "time" },
@@ -1462,6 +1490,15 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       { k: "park", label: "Where", type: "select", options: PARKS, full: true },
     ], cur, (v) => put("wishes", id || uid(), { ...cur, ...v, hearts: [...(cur.hearts || [])] }), id ? () => remove("wishes", id) : null);
   }
+  function editFood(id) {
+    const cur = id ? state.food[id] : { place: FOOD_PLACES[0], meal: "", note: "", hearts: [me], done: false };
+    openSheet(id ? "Edit food" : "Add food", [
+      { k: "text", label: "What are we eating?", full: true, placeholder: "Dole Whip" },
+      { k: "place", label: "Where", type: "select", options: FOOD_PLACES },
+      { k: "meal", label: "Meal", type: "select", options: MEALS },
+      { k: "note", label: "Note (optional)", full: true, placeholder: "Book 60 days out" },
+    ], cur, (v) => put("food", id || uid(), { ...cur, ...v, hearts: [...(cur.hearts || [])] }), id ? () => remove("food", id) : null);
+  }
   function editTodo(id) {
     const cur = id ? state.todos[id] : { done: false, months: null, days: null };
     const timing = cur.months != null && cur.months !== "" ? "months" : cur.days != null && cur.days !== "" ? "days" : cur.due ? "date" : "none";
@@ -1544,6 +1581,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "edit-trip") return editTrip();
     if (act === "add-resort" || act === "edit-resort") return editResort(id);
     if (act === "add-wish" || act === "edit-wish") return editWish(id);
+    if (act === "add-food" || act === "edit-food") return editFood(id);
     if (act === "add-todo" || act === "edit-todo") return editTodo(id);
     if (act === "add-budget" || act === "edit-budget") return editBudget(id);
     if (act === "edit-day") return editDay(el.dataset.k);
