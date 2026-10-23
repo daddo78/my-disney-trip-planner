@@ -16,13 +16,13 @@ A phone-first planner for a Walt Disney World trip, built for my wife. She plans
 - Resorts is where she enters scenarios by hand (resort, dates, the price she found, a 1–5 star rating); real prices can't be synced. Each gets an overall score (`scoreOf` in `index.html`): rating, price vs. the money left after other budget lines, and heat (30-year average high; rain is shown, not scored), weighted by `trip/settings.scoreW` (defaults 4/4/2). Rainy season (NWS, May 27 – Oct 15) and hurricane season (NOAA, Jun 1 – Nov 30, peak mid-Aug – mid-Oct) are month-day ranges, so they work for any year. Compare ranks them and shows up to 3 side by side.
 - Storage modes: on the website it uses the Worker API and checks for changes every 5 seconds. The claude.ai artifact (https://claude.ai/artifact/XoojCoRWJGJiB31w4jiKoQ) still runs but is **no longer the live copy**. Opened as a file, it uses localStorage seeded from `STARTER`.
 - Change live data through the API (`PUT`/`DELETE https://dtp.ondorilabo.com/api/docs/<coll>/<id>`), not with the artifact tools.
-- Ticket prices: 4 adult-price + 1 child ticket (Amelia, 13, and Avery, 10, pay adult prices by the trip; Annie is 3). The tickets line is a formula estimate (`ref/tickets`).
+- Ticket prices: 4 adult-price + 1 child ticket (Amelia, 13, and Avery, 10, pay adult prices by the trip; Annie is 3). The ticket estimator card is gone (`ref/tickets` is still in the db, unused); she sets the tickets amount herself.
 - Collections (one doc per item):
   - `trip/settings`: `{budget, start, end, adults, kids, pickId, tixDays, tixAdults, tixKids, scoreW: {desire, price, weather}}` (weights 0–5); `trip/compare`: `{ids: [resort ids, up to 3]}`
   - `proscons/<resort-slug>`: `{name, pros[], cons[]}` (items `{id, text, by}`)
   - `dvc/<resort>` (official 2027 points charts), `ref/seasons2027`, `ref/weather`, `ref/tickets`, `ref/news`, `news/<id>`
   - `resorts/<id>`: `{name, room, size, sleeps, kitchen, start, end, total, points, ppp, source, walk, eeh, vibe, notes, desire (0–5 stars), hearts[], out}`
-  - `budget/<id>`: `{label, cat, amount, status, note}` (`cat` is one of stay, tickets, travel, food, mugs, fun, other; the picked resort fills the stay line automatically)
+  - `budget/<cat>`: `{label, cat, amount}`, one per category (stay, tickets, travel, food, mugs, fun, other), set by hand on the Budget tab. Older line items in a category add up until that category is edited, then fold into the one doc. A blank stay line uses the picked resort's price; a set stay line is what resort prices are scored against.
   - `wishes/<id>`: `{text, park, hearts[], done}`
   - `todos/<id>`: `{text, months|days|due, done, note}` (dates count back from check-in)
 - The db is already seeded with her real quotes (from her screenshots of a DVC rental site). The budget lines for tickets, travel, food, mugs and souvenirs are **my guesses**, marked "Estimate".

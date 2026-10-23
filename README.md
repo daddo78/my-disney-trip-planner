@@ -7,7 +7,7 @@ Live at **https://dtp.ondorilabo.com**. Both phones see the same plan, and chang
 - **Home**: countdown to check-in, budget at a glance, our resort pick, usual weather for our dates, what's coming up.
 - **Resorts**: one card per option (resort, dates, and the price we found). Weather, rainy season and hurricane season fill in from the dates, a 1–5 star "how much we want it" rating, pros and cons, an overall score out of 100, and "our pick".
 - **Compare**: every option ranked by score, "what matters most" weights (want it / price / weather), and up to three options side by side: price, per night, budget, rating, dates, usual highs, rain, seasons, room, walk to the parks, pros and cons.
-- **Budget**: the picked resort fills the stay line. The park ticket estimator works out tickets for the number of park days (4 adult-price + 1 child ticket).
+- **Budget**: one amount per category that we set ourselves (resort, tickets, travel, food, mugs, fun, other), against the total budget. Left blank, the resort line uses our pick's price.
 - **Dream list**: rides, snacks and moments by park.
 - **To-do**: booking windows and reminders, dated by counting back from check-in.
 - **News**: Walt Disney World stories from Disney Parks Blog, WDW News Today, BlogMickey and Disney Tourist Blog, refreshed daily.

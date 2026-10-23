@@ -221,8 +221,9 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 @media (max-width: 480px) { .optgrid { gap: 6px; } .optcell { padding: 8px 6px; } .optcell strong { font-size: 1.05rem; } .optcell .nn { display: none; } .optcell .pill { padding: 2px 6px; font-size: .68rem; } }
 .src { font-size: .78rem; color: var(--muted); }
 .src a { color: inherit; }
-.daydots { display: flex; flex-wrap: wrap; gap: 4px; }
-.daydots i { width: 14px; height: 14px; border-radius: 50%; }
+.amt { display: inline-flex; align-items: center; gap: 4px; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
+.amt input { width: 104px; border: 2px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 8px 10px; font: inherit; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.amt input::placeholder { color: var(--muted); opacity: .7; }
 .pc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pc-col { background: var(--surface-2); border-radius: 14px; padding: 10px 12px; min-width: 0; border-top: 4px solid var(--good); }
 .pc-col.bad { border-top-color: var(--bad); }
@@ -525,14 +526,19 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   function totals() {
     const s = settings();
     const pick = s.pickId && state.resorts[s.pickId] ? { id: s.pickId, ...state.resorts[s.pickId] } : null;
-    const stay = pick ? Number(pick.total) || 0 : 0;
+    // One amount per category (budget/<cat>). Older line items in the same category still add up until that category is edited.
     const items = entries("budget");
     const byCat = {};
-    let other = 0;
-    items.forEach((i) => { const a = Number(i.amount) || 0; byCat[i.cat] = (byCat[i.cat] || 0) + a; other += a; });
-    byCat.stay = (byCat.stay || 0) + stay;
+    items.forEach((i) => { const c = CATS[i.cat] ? i.cat : "other"; byCat[c] = (byCat[c] || 0) + (Number(i.amount) || 0); });
+    // The resort line is what she sets; left blank, it uses our pick's price.
+    const stayFromPick = byCat.stay == null && !!pick;
+    const stay = byCat.stay != null ? byCat.stay : pick ? Number(pick.total) || 0 : 0;
+    byCat.stay = stay;
+    const other = Object.keys(byCat).reduce((n, c) => n + (c === "stay" ? 0 : byCat[c]), 0);
     const planned = stay + other;
-    return { budget: Number(s.budget) || 0, stay, other, planned, left: (Number(s.budget) || 0) - planned, byCat, pick, items };
+    // What a resort can cost: the resort budget she set, or else whatever the other categories leave.
+    const room = items.some((i) => i.cat === "stay") ? stay : (Number(s.budget) || 0) - other;
+    return { budget: Number(s.budget) || 0, stay, stayFromPick, room, other, planned, left: (Number(s.budget) || 0) - planned, byCat, pick, items };
   }
   function lovedBy(h) {
     if (!h || !h.length) return "";
@@ -588,7 +594,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   const weights = () => ({ ...SCORE_W, ...(settings().scoreW || {}) });
   const clamp01 = (x) => Math.max(0, Math.min(1, x));
   function scoreOf(r, t) {
-    const W = weights(), parts = {}, room = t.budget - t.other, total = Number(r.total) || 0;
+    const W = weights(), parts = {}, room = t.room, total = Number(r.total) || 0;
     // 1 star = 0, 5 stars = 100.
     if (r.desire) parts.desire = ((Number(r.desire) - 1) / 4) * 100;
     // 100 if it uses 60% or less of the money left for a resort, 0 once it's 75% over. Wide on purpose:
@@ -656,14 +662,6 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
         <button type="button" class="btn ghost sm" data-act="pc-add" data-key="${esc(key)}" data-name="${esc(name)}" data-kind="cons">− Con</button></div>` : ""}`;
   }
 
-  // Ticket estimate: Disney's lowest per-day price × days, child discount, tax, then a cushion for pricier start dates.
-  const ticketRef = () => state.ref.tickets || REF.tickets;
-  function ticketEstimate(days, ad, ch) {
-    const T = ticketRef(), per = Number(T.fromPerDay[days]); if (!per) return null;
-    const adult = per * days, child = adult * T.childRatio;
-    const base = (adult * ad + child * ch) * (1 + T.tax);
-    return { adult, child, low: base, mid: base * (1 + T.likely), high: base * (1 + T.high) };
-  }
   const link = (url, text) => `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>`;
   function weatherCard(a, b, compact) {
     const r = weatherFor(a, b), w = weather();
@@ -692,11 +690,12 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       <div class="top-right"><span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span>
       <button class="theme-btn" data-act="theme" aria-label="${isDark() ? "Switch to light mode" : "Switch to dark mode"}">${isDark() ? I.sun.replace(/14/g, "18") : I.moon}</button></div></div>`;
     const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, todo: todoView, news: newsView }[view.tab]();
-    // Keep a half-typed pro/con when a live update re-renders the page.
-    const typing = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.pcInput
-      ? { key: document.activeElement.dataset.pcInput, value: document.activeElement.value } : null;
+    // Keep a half-typed pro/con or budget amount when a live update re-renders the page.
+    const ae = document.activeElement, ds = ae && ae.dataset ? ae.dataset : {};
+    const typing = ds.pcInput ? { sel: `[data-pc-input="${ds.pcInput}"]`, value: ae.value, keepEmpty: false }
+      : ds.cat ? { sel: `[data-cat="${ds.cat}"]`, value: ae.value, keepEmpty: true } : null;
     app.innerHTML = top + body;
-    if (typing && typing.value) { const el = app.querySelector(`[data-pc-input="${typing.key}"]`); if (el) { el.value = typing.value; el.focus(); } }
+    if (typing && (typing.value || typing.keepEmpty)) { const el = app.querySelector(typing.sel); if (el) { el.value = typing.value; el.focus(); } }
   }
 
   function meterHTML(t) {
@@ -799,7 +798,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
         ${wxLine(sc.wx)}
         <div class="row between"><span class="small" style="font-weight:800">${esc(DESIRE[Number(r.desire) || 0])}</span>${starsHTML(r)}</div>
         ${factorBars(sc)}
-        ${Number(r.total) ? stayMeter(Number(r.total), t.budget - t.other) : ""}
+        ${Number(r.total) ? stayMeter(Number(r.total), t.room) : ""}
         <div class="tags">
           <span class="pill plain">Sleeps ${esc(r.sleeps)}</span>
           <span class="pill ${r.kitchen === "No kitchen" ? "bad" : "plain"}">${esc(r.kitchen)}</span>
@@ -809,7 +808,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
         </div>
         ${r.notes ? `<div class="note quote">${esc(r.notes)}</div>` : ""}
         ${prosConsHTML(r.name)}
-        ${Number(r.total) ? `<div class="soft small">With everything else in the budget, this ${sc.left >= 0 ? `leaves <b style="color:var(--good)">${money(sc.left)}</b> to spare` : `goes <b style="color:var(--bad)">${money(-sc.left)} over</b>`}.</div>` : ""}
+        ${Number(r.total) ? `<div class="soft small">Against the ${money(t.room)} for a resort, this ${sc.left >= 0 ? `leaves <b style="color:var(--good)">${money(sc.left)}</b> to spare` : `goes <b style="color:var(--bad)">${money(-sc.left)} over</b>`}.</div>` : ""}
         ${canWrite ? `<div class="row between">
           <button class="icon-btn" data-act="edit-resort" data-id="${r.id}" aria-label="Edit ${esc(r.name)}">${I.pencil}</button>
           ${picked ? `<button class="btn ghost sm" data-act="unpick">Unpick</button>` : `<button class="btn sm" data-act="pick" data-id="${r.id}">Make it our pick</button>`}
@@ -833,7 +832,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   // How the score and seasons are worked out, with sources. Shown under both tabs.
   function scoreHow() {
     const w = weather();
-    return `Score: how much you want it, price (100 if it uses 60% or less of the money left for a resort after the other budget lines, 0 once it's 75% over) and heat (the average high: 100 at 80° or cooler, 0 at 90°; rain is shown but not scored), weighted on the Compare tab.
+    return `Score: how much you want it, price (100 if it uses 60% or less of the resort budget (or, if none is set, what the other budget lines leave), 0 once it's 75% over) and heat (the average high: 100 at 80° or cooler, 0 at 90°; rain is shown but not scored), weighted on the Compare tab.
       Weather: ${link(w.url, w.source)}, ${esc(w.years)} averages, not a forecast. Rainy season: ${link(SEASONS.rainy.url, SEASONS.rainy.source)}. Hurricane season: ${link(SEASONS.hurricane.url, SEASONS.hurricane.source)}.`;
   }
 
@@ -872,7 +871,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       ["Overall score", (r) => r.sc.overall, "high", (r) => scoreBadge(r.sc.overall)],
       ["Total price", (r) => Number(r.total) || null, "low", (r) => `<strong class="num">${Number(r.total) ? money(r.total) : "–"}</strong>`],
       ["Per night", (r) => (Number(r.total) ? perNight(r) : null), "low", (r) => `<span class="num">${Number(r.total) ? money(perNight(r)) : "–"}</span>`],
-      ["Budget", (r) => (Number(r.total) ? r.sc.left : null), "high", (r) => Number(r.total) ? `<span class="small" style="font-weight:800;color:var(--${r.sc.left >= 0 ? "good" : "bad"})">${r.sc.left >= 0 ? `${money(r.sc.left)} under` : `${money(-r.sc.left)} over`}</span>${stayMeter(Number(r.total), t.budget - t.other, true)}` : "–"],
+      ["Budget", (r) => (Number(r.total) ? r.sc.left : null), "high", (r) => Number(r.total) ? `<span class="small" style="font-weight:800;color:var(--${r.sc.left >= 0 ? "good" : "bad"})">${r.sc.left >= 0 ? `${money(r.sc.left)} under` : `${money(-r.sc.left)} over`}</span>${stayMeter(Number(r.total), t.room, true)}` : "–"],
       ["How much we want it", (r) => Number(r.desire) || null, "high", (r) => `${starsHTML(r, true)}<span class="small">${esc(DESIRE[Number(r.desire) || 0])}</span>`],
       ["Dates", null, null, (r) => `<span class="small" style="font-weight:800">${esc(span(r.start, r.end))}</span><span class="muted small">${nights(r.start, r.end)} nights</span>`],
       ["Usual highs", (r) => (r.sc.wx && r.sc.wx.known.length ? r.sc.wx.hiAvg : null), "low", (r) => r.sc.wx && r.sc.wx.known.length ? `<strong class="num">${r.sc.wx.hiMin === r.sc.wx.hiMax ? r.sc.wx.hiMax : `${r.sc.wx.hiMin}–${r.sc.wx.hiMax}`}°</strong><span class="muted small">lows ${r.sc.wx.loMin}–${r.sc.wx.loMax}°</span>` : "–"],
@@ -908,68 +907,44 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     const tone = share <= 0.8 ? "good" : share <= 1 ? "warn" : "bad";
     const bar = `<div class="costbar${compact ? " sm" : ""}" role="img" aria-label="Uses ${isFinite(share) ? Math.round(share * 100) + "%" : "all"} of the money left for the stay"><span style="width:${Math.min(1, isFinite(share) ? share : 1) * 100}%;background:var(--${tone})"></span></div>`;
     if (compact) return bar;
-    return `<div class="stay-meter"><div class="row between small"><span class="muted">Share of the ${money(Math.max(0, room))} left for a resort</span><b style="color:var(--${tone})">${isFinite(share) ? Math.round(share * 100) + "%" : "Over"}</b></div>${bar}</div>`;
+    return `<div class="stay-meter"><div class="row between small"><span class="muted">Share of the ${money(Math.max(0, room))} for a resort</span><b style="color:var(--${tone})">${isFinite(share) ? Math.round(share * 100) + "%" : "Over"}</b></div>${bar}</div>`;
   }
 
+  // One row per category with an amount she types in. The resort row also shows our pick, to compare against.
   function budgetView() {
-    const t = totals();
-    const groups = Object.keys(CATS).map((c) => {
-      const rows = t.items.filter((i) => (i.cat || "other") === c);
+    const t = totals(), hasDoc = (c) => t.items.some((i) => (CATS[i.cat] ? i.cat : "other") === c);
+    const rows = Object.keys(CATS).map((c) => {
+      const amt = t.byCat[c] || 0, share = t.budget > 0 && amt ? `${Math.round((amt / t.budget) * 100)}% of the budget` : "";
+      let sub = share;
       if (c === "stay") {
-        const stayRow = t.pick
-          ? `<div class="item"><span class="dot" style="background:${CATS.stay.color}"></span><div><div class="t">${esc(t.pick.name)}</div><div class="muted small">${esc(t.pick.room)} · ${nights(t.pick.start, t.pick.end)} nights · from our pick</div></div><div class="amount">${money(t.stay)}</div></div>`
-          : `<div class="item"><span class="dot" style="background:${CATS.stay.color}"></span><div><div class="t">No resort picked yet</div><div class="muted small">Pick one on the Resorts tab and it shows up here</div></div><button class="btn ghost sm" data-act="tab" data-k="resorts">Pick</button></div>`;
-        return { c, html: stayRow + rows.map(itemRow).join("") };
+        if (!t.pick) sub = `No resort picked yet. <button class="btn quiet sm" data-act="tab" data-k="dates" style="padding:0">Compare options</button>`;
+        else if (t.stayFromPick) sub = `Using our pick, ${esc(t.pick.name)}${share ? " · " + share : ""}`;
+        else {
+          const d = amt - (Number(t.pick.total) || 0);
+          sub = `Our pick, ${esc(t.pick.name)}, is ${money(t.pick.total)} (${d >= 0 ? `${money(d)} under` : `<b style="color:var(--bad)">${money(-d)} over</b>`})${share ? " · " + share : ""}`;
+        }
       }
-      return rows.length ? { c, html: rows.map(itemRow).join("") } : null;
-    }).filter(Boolean);
-    return `<div class="row between"><h2>Budget</h2>${canWrite ? `<button class="btn sm" data-act="add-budget">${I.plus} Add cost</button>` : ""}</div>
+      const val = hasDoc(c) ? String(Math.round(amt)) : "";
+      const ph = c === "stay" && t.pick ? String(Math.round(Number(t.pick.total) || 0)) : "0";
+      return `<div class="item"><span class="dot" style="background:${CATS[c].color}"></span>
+        <div><div class="t">${esc(CATS[c].label)}</div>${sub ? `<div class="muted small">${sub}</div>` : ""}</div>
+        <label class="amt">$<input type="number" inputmode="numeric" min="0" step="50" data-cat="${c}" value="${esc(val)}" placeholder="${esc(ph)}" aria-label="${esc(CATS[c].label)} budget" ${canWrite ? "" : "disabled"}></label></div>`;
+    }).join("");
+    return `<h2>Budget</h2>
+      <div class="muted">Set how much we want to spend on each part of the trip.</div>
       <section class="card stack">${leftHTML(t)}${meterHTML(t)}
-        ${t.left < 0 ? `<div class="soft small">Over by <b style="color:var(--bad)">${money(-t.left)}</b>. Earlier dates or a studio instead of a 1 bedroom could close the gap.</div>` : `<div class="soft small">Room for extras: <b style="color:var(--good)">${money(t.left)}</b>.</div>`}
-        ${canWrite ? `<div><button class="btn ghost sm" data-act="edit-trip">Change budget</button></div>` : ""}</section>
-      ${ticketCard(t)}
-      <section class="card"><div class="list">${groups.map((g) => `<div class="eyebrow" style="margin-top:10px">${esc(CATS[g.c].label)}</div>${g.html}`).join("")}</div>
-      ${!t.items.length ? `<div class="empty">No other costs yet. Add tickets, travel and food to see the full picture.</div>` : ""}</section>`;
+        ${t.left < 0 ? `<div class="soft small">The categories add up to <b style="color:var(--bad)">${money(-t.left)}</b> more than the budget.</div>` : `<div class="soft small">Not set aside for anything yet: <b style="color:var(--good)">${money(t.left)}</b>.</div>`}
+        ${canWrite ? `<div><button class="btn ghost sm" data-act="edit-trip">Change total budget</button></div>` : ""}</section>
+      <section class="card"><div class="list">${rows}</div></section>
+      <div class="src">The Resorts and Compare tabs score each option's price against the resort line. Left blank, it uses our pick's price, and options are scored against whatever the other lines leave.</div>`;
   }
-  // Park days vs off days for the trip dates. Check-in and check-out days count as days there.
-  function dayPlanHTML(parkDays, start, end) {
-    const s = settings(), n = nights(start || s.start, end || s.end); if (n <= 0) return "";
-    const there = n + 1, off = there - parkDays;
-    if (off < 0) return `<div class="soft small" style="color:var(--bad)">That's more park days than the ${there} days we're there.</div>`;
-    const dots = Array.from({ length: there }, (_, i) => `<i style="background:${i < parkDays ? "var(--c-tickets)" : "var(--c-mugs)"}"></i>`).join("");
-    return `<div class="soft stack" style="gap:6px">
-      <div class="small"><b>${n} nights = ${there} days there:</b> <span style="color:var(--c-tickets);font-weight:800">${parkDays} park days</span> + <span style="color:var(--c-mugs);font-weight:800">${off} off days</span> (counting travel days)</div>
-      <div class="daydots" aria-hidden="true">${dots}</div></div>`;
-  }
-  function ticketCard(t) {
-    const s = settings(), T = ticketRef(), days = Number(s.tixDays) || 5, ad = Number(s.tixAdults) || 0, ch = Number(s.tixKids) || 0;
-    const e = ticketEstimate(days, ad, ch); if (!e) return "";
-    const line = t.items.find((i) => i.cat === "tickets");
-    const chip = (d) => `<button class="chip" data-act="tix-days" data-k="${d}" aria-pressed="${d === days}" ${canWrite ? "" : "disabled"}>${d} days</button>`;
-    return `<section class="card stack">
-      <div class="row between"><h3>Park tickets</h3><span class="pill warn">Estimate</span></div>
-      <div class="muted small">How many days do we want in the parks? Tickets only cover park days. Off days at the resort, the pool or shopping cost nothing.</div>
-      <div class="toolbar" role="group" aria-label="Park days">${[3, 4, 5, 6, 7, 8, 9, 10].map(chip).join("")}</div>
-      ${dayPlanHTML(days)}
-      <div class="dates">
-        <div class="field"><label for="tix-ad">Adult price (ages 10+)</label><input id="tix-ad" type="number" min="0" inputmode="numeric" value="${ad}" ${canWrite ? "" : "disabled"}></div>
-        <div class="field"><label for="tix-ch">Child price (ages 3–9)</label><input id="tix-ch" type="number" min="0" inputmode="numeric" value="${ch}" ${canWrite ? "" : "disabled"}></div>
-      </div>
-      <div class="big3">
-        <div><span class="eyebrow">Lowest</span><strong>${money(e.low)}</strong></div>
-        <div><span class="eyebrow">Likely</span><strong style="color:var(--accent-ink)">${money(e.mid)}</strong></div>
-        <div><span class="eyebrow">High</span><strong>${money(e.high)}</strong></div></div>
-      <div class="soft small">${days}-day ticket, 1 park per day, with tax. About ${money(e.adult * (1 + T.likely) * (1 + T.tax))} per adult-price ticket and ${money(e.child * (1 + T.likely) * (1 + T.tax))} per child ticket. Only Annie (3) gets child pricing; Amelia and Avery are 10+ by the trip.</div>
-      ${canWrite && line && Math.round(line.amount) !== Math.round(e.mid) ? `<div><button class="btn sm" data-act="tix-use" data-id="${esc(line.id)}">Use ${money(e.mid)} in the budget</button></div>` : line ? `<div class="muted small">The budget uses the likely amount.</div>` : ""}
-      <div class="muted small">${esc(T.how)}</div>
-      <div class="src">Source: ${link(T.url, T.source)}, checked ${esc(fmt(T.asOf, { month: "short", day: "numeric", year: "numeric" }))}; ${link(T.url2, T.source2)}. Replace this with Disney's real total once it shows our start date.</div></section>`;
-  }
-  function itemRow(i) {
-    const st = i.status || "Estimate";
-    const cls = st === "Paid" ? "good" : st === "Booked" ? "" : "warn";
-    return `<div class="item"><span class="dot" style="background:${(CATS[i.cat] || CATS.other).color}"></span>
-      <div><div class="t">${esc(i.label)} <span class="pill ${cls}">${esc(st)}</span></div>${i.note ? `<div class="muted small">${esc(i.note)}</div>` : ""}</div>
-      <div class="row" style="gap:6px;flex-wrap:nowrap"><span class="amount">${money(Number(i.amount) || 0)}</span>${canWrite ? `<button class="icon-btn" data-act="edit-budget" data-id="${i.id}" aria-label="Edit ${esc(i.label)}">${I.pencil}</button>` : ""}</div></div>`;
+  // Saving a category replaces any older line items in it with the one amount.
+  function setCatBudget(c, raw) {
+    const items = entries("budget").filter((i) => (CATS[i.cat] ? i.cat : "other") === c);
+    if (raw === "" && c === "stay") { items.forEach((i) => remove("budget", i.id)); return; }
+    const amount = Math.max(0, Math.round(Number(raw) || 0));
+    put("budget", c, { label: CATS[c].label, cat: c, amount });
+    items.filter((i) => i.id !== c).forEach((i) => remove("budget", i.id));
   }
 
   function dreamsView() {
@@ -1105,16 +1080,6 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       { k: "adults", label: "Adults", type: "number" }, { k: "kids", label: "Kids", type: "number" },
     ], settings(), (v) => setSettings(v));
   }
-  function editBudget(id) {
-    const cur = id ? state.budget[id] : { cat: "other", status: "Estimate" };
-    openSheet(id ? "Edit cost" : "Add a cost", [
-      { k: "label", label: "What is it?", full: true },
-      { k: "amount", label: "Amount ($)", type: "number" },
-      { k: "cat", label: "Category", type: "select", options: Object.keys(CATS).map((c) => [c, CATS[c].label]) },
-      { k: "status", label: "Status", type: "select", options: ["Estimate", "Booked", "Paid"] },
-      { k: "note", label: "Note", full: true },
-    ], cur, (v) => put("budget", id || uid(), { ...cur, ...v }), id ? () => remove("budget", id) : null);
-  }
   function editWish(id) {
     const cur = id ? state.wishes[id] : { park: PARKS[0], hearts: [me], done: false };
     openSheet(id ? "Edit dream" : "Add a dream", [
@@ -1178,12 +1143,6 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       put("proscons", key, { ...cur, [kind]: (cur[kind] || []).filter((x) => x.id !== el.dataset.id) });
       return;
     }
-    if (act === "tix-days") { setSettings({ tixDays: Number(el.dataset.k) }); return; }
-    if (act === "tix-use") {
-      const s = settings(), e = ticketEstimate(Number(s.tixDays), Number(s.tixAdults), Number(s.tixKids)), cur = state.budget[id]; if (!e || !cur) return;
-      put("budget", id, { ...cur, amount: Math.round(e.mid), status: "Estimate", note: `${s.tixDays}-day tickets, ${s.tixAdults} adult-price + ${s.tixKids} child, with tax. Formula estimate from Disney's 2027 lowest prices; swap in the real total when we buy.` });
-      toast("Ticket estimate added to the budget"); return;
-    }
     // Tapping the current star (or the last filled weight dot) again steps it down, so it can go back to zero.
     if (act === "stars") { const cur = state.resorts[id], n = Number(el.dataset.n); put("resorts", id, { ...cur, desire: Number(cur.desire) === n ? n - 1 : n }); return; }
     if (act === "weight") { const W = weights(), k = el.dataset.k, n = Number(el.dataset.n); setSettings({ scoreW: { ...W, [k]: W[k] === n ? n - 1 : n } }); return; }
@@ -1199,20 +1158,17 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     if (act === "unpick") { setSettings({ pickId: "" }); return; }
     if (act === "edit-trip") return editTrip();
     if (act === "add-resort" || act === "edit-resort") return editResort(id);
-    if (act === "add-budget" || act === "edit-budget") return editBudget(id);
     if (act === "add-wish" || act === "edit-wish") return editWish(id);
     if (act === "add-todo" || act === "edit-todo") return editTodo(id);
   });
   document.addEventListener("change", (e) => {
     const el = e.target;
     if (el.id === "sort") { view.sort = el.value; render(); return; }
-    if ((el.id === "tix-ad" || el.id === "tix-ch") && canWrite) {
-      const v = Math.max(0, Math.round(Number(el.value) || 0));
-      setSettings(el.id === "tix-ad" ? { tixAdults: v } : { tixKids: v }); return;
-    }
+    if (el.dataset.cat && canWrite) { setCatBudget(el.dataset.cat, el.value.trim()); return; }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeSheet();
+    if (e.key === "Enter" && e.target.dataset && e.target.dataset.cat) { e.preventDefault(); e.target.blur(); }
     // Enter in a pro/con box adds it as a pro; the − Con button is right beside it.
     if (e.key === "Enter" && e.target.dataset && e.target.dataset.pcInput) { e.preventDefault(); const b = e.target.parentElement.querySelector('[data-kind="pros"]'); if (b) b.click(); }
   });
