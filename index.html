@@ -1080,17 +1080,19 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   // ---------- plan: Day 1, Day 2… from check-in to check-out, each a park (or a rest/travel day) and a schedule ----------
   // Days are saved by number (days/d1, d2…), so a plan stays put if the dates move.
   const clock = (t) => { if (!t) return ""; const [h, m] = t.split(":").map(Number); return `${(h % 12) || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`; };
+  // No dates on purpose: she adds days as she goes, since the trip length isn't settled.
+  const dayCount = () => Math.max(0, ...Object.keys(state.days).map((k) => Number(k.slice(1))).filter((x) => x > 0));
   function tripDays() {
-    const s = settings(), n = nights(s.start, s.end), start = parseD(s.start);
-    const saved = Object.keys(state.days).map((k) => Number(k.slice(1))).filter((x) => x > 0);
-    const count = Math.max(n > 0 ? n + 1 : 0, ...saved, 1);
-    return Array.from({ length: count }, (_, i) => {
+    return Array.from({ length: dayCount() }, (_, i) => {
       const num = i + 1, doc = state.days["d" + num] || {};
-      return { num, id: "d" + num, date: start ? new Date(start.getTime() + i * DAY) : null, park: doc.park || "", note: doc.note || "", items: doc.items || [], after: n > 0 && num > n + 1 };
+      return { num, id: "d" + num, park: doc.park || "", note: doc.note || "", items: doc.items || [] };
     });
   }
   function planView() {
-    const days = tripDays(), s = settings();
+    const days = tripDays();
+    if (!days.length) return `<div class="row between"><h2>Day by day</h2>${art("outpost", 40)}</div>
+      <div class="card empty">${art("sorcerer-hat", 56)}<h3>Sketch the trip one day at a time</h3><div>Add Day 1, pick a park or call it a rest day, then add the rides, meals and shows.</div>
+      ${canWrite ? `<button class="btn" data-act="add-day">${I.plus} Add Day 1</button>` : ""}</div>`;
     const count = (f) => days.filter(f).length;
     const parkDays = count((d) => d.park && !OFF_DAYS.includes(d.park)), rest = count((d) => d.park === "Rest day"), travel = count((d) => d.park === "Travel day"), open = count((d) => !d.park);
     const strip = days.map((d) => `<button class="${OFF_DAYS.includes(d.park) ? "rest" : ""}" data-act="jump" data-k="${d.id}" aria-label="Day ${d.num}${d.park ? ", " + esc(d.park) : ""}">${art(PARK_ART[d.park] || "sorcerer-hat")}Day ${d.num}</button>`).join("");
@@ -1100,7 +1102,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       const kind = (k) => { const x = KINDS.find((y) => y[0] === k); return x ? `<span class="pill plain kind ${k}">${x[1]}</span>` : ""; };
       return `<section class="card park day ${off ? "rest" : ""}" id="day-${d.num}">
         <div class="head"><button class="who" data-act="edit-day" data-k="${d.id}" ${canWrite ? "" : "disabled"}>${art(PARK_ART[d.park] || "sorcerer-hat", 40)}
-          <h3>Day ${d.num} · ${d.park ? esc(d.park) : `<span class="muted">Pick a park</span>`}<span class="when">${d.date ? esc(fmt(d.date, { weekday: "short", month: "short", day: "numeric" })) : ""}${d.after ? " · after check-out" : ""}${d.num === 1 ? " · check-in" : d.date && isoD(d.date) === s.end ? " · check-out" : ""}</span></h3></button>
+          <h3><span class="when">Day ${d.num}</span>${d.park ? esc(d.park) : `<span class="muted">Pick a park</span>`}</h3></button>
           ${canWrite ? `<button class="icon-btn" data-act="edit-day" data-k="${d.id}" aria-label="Edit day ${d.num}">${I.pencil}</button>` : ""}</div>
         ${d.note ? `<div class="muted small">${esc(d.note)}</div>` : ""}
         ${items.length ? `<div class="sched">${items.map((x) => `<div class="slot">
@@ -1111,15 +1113,26 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     }).join("");
     const tally = [parkDays && `${parkDays} park day${parkDays > 1 ? "s" : ""}`, rest && `${rest} rest day${rest > 1 ? "s" : ""}`, travel && `${travel} travel day${travel > 1 ? "s" : ""}`, open && `${open} to pick`].filter(Boolean).join(" · ");
     return `<div class="row between"><h2>Day by day</h2>${art("outpost", 40)}</div>
-      <div class="muted">${esc(span(s.start, s.end))}. Tap a day to pick the park or call it a rest day, then add the rides, meals and shows in order.${tally ? ` <b>${tally}.</b>` : ""}</div>
-      <div class="daystrip" role="group" aria-label="Jump to a day">${strip}</div>${cards}`;
+      <div class="muted">Tap a day to pick the park or call it a rest day, then add the rides, meals and shows in order.${tally ? ` <b>${tally}.</b>` : ""}</div>
+      ${days.length > 3 ? `<div class="daystrip" role="group" aria-label="Jump to a day">${strip}</div>` : ""}${cards}
+      ${canWrite ? `<div><button class="btn" data-act="add-day">${I.plus} Add Day ${days.length + 1}</button></div>` : ""}`;
   }
+  // A new day is only saved when she taps Save, so Cancel leaves nothing behind.
   function editDay(id) {
-    const cur = state.days[id] || { park: "", note: "", items: [] };
-    openSheet(`Day ${id.slice(1)}`, [
+    const isNew = !state.days[id], cur = state.days[id] || { park: "", note: "", items: [] };
+    openSheet(isNew ? `Add Day ${id.slice(1)}` : `Day ${id.slice(1)}`, [
       { k: "park", label: "Where are we?", type: "select", full: true, options: [["", "Not decided yet"], ...DAY_PARKS] },
       { k: "note", label: "Note", full: true, placeholder: "Early entry, park hopping to EPCOT at 2…" },
-    ], cur, (v) => put("days", id, { ...cur, park: v.park, note: v.note, items: [...(cur.items || [])] }));
+    ], cur, (v) => {
+      put("days", id, { ...cur, park: v.park, note: v.note, items: [...(cur.items || [])] });
+      if (isNew) setTimeout(() => { const c = document.getElementById("day-" + id.slice(1)); if (c) c.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50);
+    }, isNew ? null : () => deleteDay(Number(id.slice(1))));
+  }
+  // Deleting a day moves the later ones up, so there's never a gap (deleting Day 3 makes Day 4 the new Day 3).
+  function deleteDay(num) {
+    const n = dayCount();
+    for (let k = num; k < n; k++) put("days", "d" + k, state.days["d" + (k + 1)] || { park: "", note: "", items: [] });
+    remove("days", "d" + n);
   }
   function editSlot(dayId, slotId) {
     const day = state.days[dayId] || { park: "", note: "", items: [] }, items = day.items || [];
@@ -1441,6 +1454,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "add-wish" || act === "edit-wish") return editWish(id);
     if (act === "add-todo" || act === "edit-todo") return editTodo(id);
     if (act === "edit-day") return editDay(el.dataset.k);
+    if (act === "add-day") return editDay("d" + (dayCount() + 1));
     if (act === "add-slot" || act === "edit-slot") return editSlot(el.dataset.k, id);
   });
   document.addEventListener("change", (e) => {
