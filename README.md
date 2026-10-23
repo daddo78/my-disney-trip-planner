@@ -13,6 +13,7 @@ Live at **https://dtp.ondorilabo.com**. Both phones see the same plan, and chang
 - **Food**: meals and snacks by park, plus resort meals and room meals, each with an optional meal (breakfast, lunch, dinner, snack) and note.
 - **To-do**: booking windows and reminders, dated by counting back from check-in.
 - **News**: the full Disney World news list with filters (also a card on Home).
+- **My Trips**: more than one trip, each with its own name, who's going (names, and ages for kids) and its own resorts, budget, plan, dreams, food and to-dos. Start a new one, open one, rename it, or delete one you're not in. Each phone remembers which trip it has open.
 - The bar shows five tabs plus **More**, like Teams; Reorder in More picks which five (saved per phone).
 
 ## How it's built
@@ -26,7 +27,7 @@ wrangler.jsonc             Worker config: D1 binding, daily cron, custom domain 
 tools/refresh-news.js      the same news logic as a local script (used before the Worker had it)
 ```
 
-- **Storage:** D1 database `disney-trip-planner`, table `docs (coll, id, data, deleted, updated)`. Collections: `trip`, `resorts`, `budget`, `wishes`, `food`, `todos`, `dvc`, `ref`, `proscons`, `news`, `days`. `updated` is a counter that only goes up, so each phone asks for "what changed since n" every 5 seconds.
+- **Storage:** D1 database `disney-trip-planner`, table `docs (coll, id, data, deleted, updated)`. Collections: `trip`, `resorts`, `budget`, `wishes`, `food`, `todos`, `dvc`, `ref`, `proscons`, `news`, `days`, `trips`. Trips after the first keep their own copies as `<coll>@<trip id>` (e.g. `resorts@t1a2b3c`). `updated` is a counter that only goes up, so each phone asks for "what changed since n" every 5 seconds.
 - **API:** `GET /api/docs?since=n`, `PUT /api/docs/<coll>/<id>`, `DELETE /api/docs/<coll>/<id>`.
 - **No sign-in, by choice:** anyone with the link can read and edit. Each phone picks "Dan" or "Brittany" once, for hearts and pros and cons.
 - **News:** cron `15 11 * * *` UTC (about 7:15 AM Eastern) pulls the RSS feeds, keeps Walt Disney World stories, and drops ones older than 30 days. WDW News Today refuses requests from Cloudflare's servers, so the daily refresh only gets the other three sites.

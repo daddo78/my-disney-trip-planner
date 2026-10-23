@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="cool_ship" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 36.731 39.28">
+  <!-- Generator: Adobe Illustrator 30.4.0, SVG Export Plug-In . SVG Version: 2.1.4 Build 226)  -->
+  <rect width="22.184" height="35.961" style="fill: #ae9aa6;"/>
+  <rect x="3.308" y="5.165" width="15.568" height="30.796" style="fill: #ececec;"/>
+  <path d="M8.612,7.596h-.847c-.834,0-1.509.676-1.509,1.509v10.27s3.866,0,3.866,0v-10.27c0-.834-.676-1.509-1.509-1.509Z" style="fill: #d0695e;"/>
+  <path d="M14.419,7.596h-.847c-.834,0-1.509.676-1.509,1.509v10.27s3.866,0,3.866,0v-10.27c0-.834-.676-1.509-1.509-1.509Z" style="fill: #d0695e;"/>
+  <rect x="6.255" y="21.403" width="3.866" height="11.78" style="fill: #d0695e;"/>
+  <rect x="12.062" y="21.403" width="3.866" height="11.78" style="fill: #d0695e;"/>
+  <circle cx="17.509" cy="20.366" r=".859" style="fill: #eec856;"/>
+  <circle cx="17.509" cy="20.366" r=".859" style="fill: #eec856;"/>
+  <circle cx="11.092" cy="2.875" r="1.33" style="fill: #bf4c4d;"/>
+  <g>
+    <g>
+      <rect x="26.007" y="12.072" width="8.337" height="3.864" style="fill: #efc658;"/>
+      <rect x="26.007" y="17.657" width="8.337" height="11.564" style="fill: #efc658;"/>
+      <rect x="26.007" y="15.935" width="8.337" height="1.722" style="fill: #4b445e;"/>
+      <rect x="26.007" y="29.221" width="8.337" height="1.722" style="fill: #4b445e;"/>
+      <rect x="28.928" y="21.077" width="2.496" height="6.765" style="fill: #bf4c4d;"/>
+      <rect x="28.928" y="19.037" width="2.496" height="2.04" style="fill: #4b445e;"/>
+    </g>
+    <g>
+      <rect x="32.867" y="30.943" width="3.864" height="8.337" style="fill: #efc658;"/>
+      <rect x="13.995" y="30.943" width="3.864" height="8.337" style="fill: #efc658;"/>
+      <rect x="19.581" y="30.943" width="11.564" height="8.337" style="fill: #efc658;"/>
+      <rect x="31.145" y="30.943" width="1.722" height="8.337" style="fill: #4b445e;"/>
+      <rect x="17.859" y="30.943" width="1.722" height="8.337" style="fill: #4b445e;"/>
+      <rect x="20.961" y="33.864" width="6.765" height="2.496" style="fill: #4b445e;"/>
+      <rect x="27.726" y="33.864" width="2.04" height="2.496" style="fill: #bf4c4d;"/>
+    </g>
+  </g>
+</svg>

@@ -311,6 +311,11 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
 @keyframes up { from { transform: translateY(40px); opacity: .4; } }
 .sheet .grab { width: 44px; height: 5px; border-radius: 3px; background: var(--line); justify-self: center; }
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.people { display: grid; gap: 8px; }
+.person { display: grid; grid-template-columns: 1fr 76px auto; gap: 8px; align-items: center; }
+.person input { width: 100%; min-width: 0; border: 2px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+.trip-card.on { box-shadow: 0 0 0 3px var(--accent), var(--shadow); }
+.hero .who { margin-top: 6px; font-weight: 800; }
 .field { display: grid; gap: 4px; min-width: 0; }
 .field.full { grid-column: 1 / -1; }
 .field label { font-size: .8rem; font-weight: 800; color: var(--muted); }
@@ -350,7 +355,10 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     other: { label: "Other", color: "var(--c-other)" },
   };
   const PARKS = ["Magic Kingdom", "EPCOT", "Hollywood Studios", "Animal Kingdom", "Disney Springs", "Resort & food", "Anything else"];
-  const COLLS = ["trip", "resorts", "budget", "wishes", "food", "todos", "dvc", "ref", "proscons", "news", "days"];
+  const COLLS = ["trip", "resorts", "budget", "wishes", "food", "todos", "dvc", "ref", "proscons", "news", "days", "trips"];
+  // Each trip (trips/<id>: {name, people}) has its own copy of these. The first trip ("main") keeps the plain
+  // collection names; later ones are "<coll>@<trip id>". The DVC charts, weather and news are shared by every trip.
+  const TRIP_COLLS = ["trip", "resorts", "budget", "wishes", "food", "todos", "proscons", "days"];
 
   // Built-in copy of the reference data. The shared db holds the live copy (dvc/<resort>, ref/seasons2027, ref/weather);
   // this is only used when the page runs on its own or before the db has it.
@@ -404,7 +412,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     ref: { seasons2027: REF.seasons, weather: REF.weather, tickets: REF.tickets },
   };
 
-  const state = { trip: {}, resorts: {}, budget: {}, wishes: {}, food: {}, todos: {}, dvc: {}, ref: {}, proscons: {}, news: {}, days: {} };
+  const state = { trip: {}, resorts: {}, budget: {}, wishes: {}, food: {}, todos: {}, dvc: {}, ref: {}, proscons: {}, news: {}, days: {}, trips: {} };
   let mode = "starting"; // "shared" | "local"
   let db = null, userCap = null, me = "me", canWrite = true;
   let names = {};
@@ -424,6 +432,20 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   const entries = (c) => Object.entries(state[c]).map(([id, v]) => ({ id, ...v }));
   const settings = () => ({ ...DEFAULTS, ...(state.trip.settings || {}) });
   const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+  // Which trip this phone has open (each phone keeps its own).
+  let tripId = store.get(LS_KEY + ":trip") || "main";
+  const phys = (c, t = tripId) => (TRIP_COLLS.includes(c) && t !== "main" ? `${c}@${t}` : c);
+  const tripIds = () => ["main", ...Object.keys(state.trips).filter((k) => k !== "main")];
+  const tripDoc = (id = tripId) => ({ name: id === "main" ? "Our Disney Trip" : "New trip", people: [], ...(state.trips[id] || {}) });
+  const settingsOf = (id) => (id === tripId ? settings() : { ...DEFAULTS, ...tripSettings(id) });
+  // Who's going: people with no age, or 18 and up, count as adults. Without a list, the old counts in the settings.
+  function party(id = tripId) {
+    const people = tripDoc(id).people || [];
+    if (!people.length) { const s = settingsOf(id), adults = Number(s.adults) || 0, kids = Number(s.kids) || 0; return { people, adults, kids, count: adults + kids }; }
+    const kids = people.filter((p) => p.age !== "" && p.age != null && Number(p.age) < 18).length;
+    return { people, adults: people.length - kids, kids, count: people.length };
+  }
+  const nameList = (people) => { const n = people.map((p) => p.name); return n.length > 1 ? `${n.slice(0, -1).join(", ")} & ${n[n.length - 1]}` : n.join(""); };
 
   const I = {
     home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 21V11l3-2v-4l2 2 3-4 3 4 2-2v4l3 2v10z" fill="currentColor" fill-opacity=".15"/><path d="M10 21v-4a2 2 0 0 1 4 0v4"/></svg>',
@@ -450,7 +472,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   const CAL = I.cal.replace("<svg", '<svg class="cal" aria-hidden="true"');
   const art = (name, size) => `<img class="art" src="icons/parks/${name}.svg" alt=""${size ? ` width="${size}" height="${size}"` : ""}>`;
   const TABS = [["home", "Home", "castle"], ["resorts", "Resorts", "resort"], ["dates", "Compare", "gold-star"], ["plan", "Plan", "outpost"], ["budget", "Budget", "shopping-bag"],
-    ["dreams", "Dreams", "sorcerer-hat"], ["food", "Food", "pretzel"], ["todo", "To-do", "bell"], ["news", "News", "tv-tower"]];
+    ["dreams", "Dreams", "sorcerer-hat"], ["food", "Food", "pretzel"], ["todo", "To-do", "bell"], ["news", "News", "tv-tower"], ["trips", "My Trips", "luggage"]];
   // Five tabs fit in the bar; the rest live behind "More". Each phone keeps its own order (Home stays first).
   const BAR = 5;
   function navOrder() {
@@ -487,27 +509,31 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     state[c] = { ...state[c], [id]: data };
     render();
     if (mode !== "shared") return saveLocal();
-    const key = c + "/" + id;
-    chains[key] = (chains[key] || Promise.resolve()).then(() => db.collection(c).doc(id).set(data)).catch(writeFailed);
+    const p = phys(c), key = p + "/" + id;
+    chains[key] = (chains[key] || Promise.resolve()).then(() => db.collection(p).doc(id).set(data)).catch(writeFailed);
   }
   function remove(c, id) {
     const next = { ...state[c] }; delete next[id]; state[c] = next;
     render();
     if (mode !== "shared") return saveLocal();
-    const key = c + "/" + id;
-    chains[key] = (chains[key] || Promise.resolve()).then(() => db.collection(c).doc(id).delete()).catch(writeFailed);
+    const p = phys(c), key = p + "/" + id;
+    chains[key] = (chains[key] || Promise.resolve()).then(() => db.collection(p).doc(id).delete()).catch(writeFailed);
   }
   function writeFailed(e) {
     if (e && e.code === "invalid_argument" && canWrite !== false) { canWrite = false; render(); toast("You can look but not edit. Ask for Contributor access to make changes."); return; }
     if (e && e.code === "quota_exceeded") return toast("Storage is full. Delete a few old items and try again.");
     toast("That change didn't save. Check your connection and try again.");
   }
-  function saveLocal() { store.set(LS_KEY, JSON.stringify(state)); }
+  // On this device, `local` holds every trip's collections by their stored names; `state` is the open trip.
+  let local = {};
+  function saveLocal() { COLLS.forEach((c) => (local[phys(c)] = state[c])); store.set(LS_KEY, JSON.stringify(local)); }
+  function readLocal() { COLLS.forEach((c) => (state[c] = local[phys(c)] || {})); }
   function loadLocal() {
     mode = "local";
     let saved = null; try { saved = JSON.parse(store.get(LS_KEY) || "null"); } catch {}
-    const src = saved || JSON.parse(JSON.stringify(STARTER));
-    COLLS.forEach((c) => (state[c] = src[c] || {}));
+    local = saved || JSON.parse(JSON.stringify(STARTER));
+    if (tripId !== "main" && !(local.trips || {})[tripId]) tripId = "main";
+    readLocal();
     names = { me: "You" };
     render();
   }
@@ -533,13 +559,45 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     subscribe();
   }
 
+  function listen(c, t, cb) {
+    return db.collection(phys(c, t)).onSnapshot((snap) => {
+      const m = {}; snap.docs.forEach((doc) => (m[doc.id] = doc.data())); cb(m);
+    }, () => toast("Lost the live connection. Reload to reconnect."));
+  }
+  // The shared collections stay subscribed; the open trip's are swapped when she switches trips.
+  let tripUnsubs = [];
   function subscribe() {
-    COLLS.forEach((c) => {
-      db.collection(c).onSnapshot((snap) => {
-        const m = {}; snap.docs.forEach((doc) => (m[doc.id] = doc.data()));
-        state[c] = m; render(); resolveNames();
-      }, () => toast("Lost the live connection. Reload to reconnect."));
+    COLLS.filter((c) => !TRIP_COLLS.includes(c)).forEach((c) => listen(c, tripId, (m) => {
+      state[c] = m;
+      if (c === "trips") { watchTrips(); if (tripId !== "main" && !m[tripId]) return switchTrip("main"); }
+      render(); resolveNames();
+    }));
+    subscribeTrip();
+    render();
+  }
+  function subscribeTrip() {
+    tripUnsubs.forEach((u) => typeof u === "function" && u());
+    const t = tripId;
+    tripUnsubs = TRIP_COLLS.map((c) => listen(c, t, (m) => { if (t !== tripId) return; state[c] = m; render(); resolveNames(); }));
+  }
+  // My Trips shows every trip's dates, so it keeps an eye on each trip's settings too.
+  const otherSettings = {}, watching = new Set();
+  function watchTrips() {
+    tripIds().filter((id) => !watching.has(id)).forEach((id) => {
+      watching.add(id);
+      listen("trip", id, (m) => { otherSettings[id] = m.settings || {}; render(); });
     });
+  }
+  function tripSettings(id) {
+    if (id === tripId) return state.trip.settings || {};
+    if (mode === "local") return (local[phys("trip", id)] || {}).settings || {};
+    return otherSettings[id] || {};
+  }
+  function switchTrip(id) {
+    if (mode === "local") saveLocal();
+    tripId = id; store.set(LS_KEY + ":trip", id); view.cmpIds = null;
+    if (mode === "local") readLocal();
+    else { TRIP_COLLS.forEach((c) => (state[c] = {})); subscribeTrip(); }
     render();
   }
 
@@ -573,7 +631,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     }
     return {
       collection: (c) => ({
-        onSnapshot(cb) { (subs[c] = subs[c] || []).push(cb); cb(snap(c)); },
+        onSnapshot(cb) { (subs[c] = subs[c] || []).push(cb); cb(snap(c)); return () => { subs[c] = subs[c].filter((x) => x !== cb); }; },
         doc: (id) => ({
           set: (data) => send(c, id, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(data) }, data),
           delete: () => send(c, id, { method: "DELETE" }),
@@ -818,7 +876,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const top = `<div class="topbar"><div class="brand"><img class="logo" src="icons/logo.png" alt="" width="51" height="34"><b>Trip Planner</b></div>
       <div class="top-right"><span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span>
       <button class="theme-btn" data-act="theme" aria-label="${isDark() ? "Switch to light mode" : "Switch to dark mode"}">${isDark() ? I.sun.replace(/14/g, "18") : I.moon}</button></div></div>`;
-    const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, food: foodView, todo: todoView, plan: planView, news: newsView }[view.tab]();
+    const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, food: foodView, todo: todoView, plan: planView, news: newsView, trips: tripsView }[view.tab]();
+    document.title = tripDoc().name;
     // Keep a half-typed pro/con or budget amount when a live update re-renders the page.
     const ae = document.activeElement, ds = ae && ae.dataset ? ae.dataset : {};
     const typing = ds.pcInput ? { sel: `[data-pc-input="${ds.pcInput}"]`, value: ae.value, keepEmpty: false }
@@ -864,16 +923,17 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const top = rankedOptions().filter((r) => r.sc.overall != null).slice(0, 3);
     const todos = entries("todos").filter((x) => !x.done).map((x) => ({ ...x, d: dueDate(x) })).filter((x) => x.d && x.d >= today()).sort((a, b) => a.d - b.d).slice(0, 3);
     const wish = entries("wishes"), food = entries("food");
-    const wx = weatherFor(s.start, s.end);
+    const wx = weatherFor(s.start, s.end), who = party();
     return `
       <section class="hero">
         <svg class="sparkle" style="right:18%;top:22px" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/></svg>
         <svg class="sparkle" style="right:8%;top:70px" width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/></svg>
         ${canWrite ? `<button class="icon-btn edit" data-act="edit-trip" aria-label="Edit trip details">${I.pencil}</button>` : ""}
         <div class="eyebrow">Walt Disney World · ${start ? start.getFullYear() : ""}</div>
-        <h1>Our Disney Trip</h1>
+        <h1>${esc(tripDoc().name)}</h1>
         <div class="count">${count}</div>
-        <div class="meta"><span class="pill">${esc(span(s.start, s.end))}</span><span class="pill">${n} nights</span><span class="pill">${s.adults} adults · ${s.kids} kids</span>${wx && wx.known.length ? `<span class="pill">${I.sun} Usually ${wx.hiMax}° / ${wx.loMin}°</span>` : ""}</div>
+        ${who.people.length ? `<div class="who">${esc(nameList(who.people))}</div>` : ""}
+        <div class="meta"><span class="pill">${esc(span(s.start, s.end))}</span><span class="pill">${n} nights</span>${canWrite ? `<button class="pill" data-act="edit-people" data-id="${tripId}" aria-label="Who's going">` : `<span class="pill">`}${who.adults} adult${who.adults === 1 ? "" : "s"} · ${who.kids} kid${who.kids === 1 ? "" : "s"}${canWrite ? "</button>" : "</span>"}${wx && wx.known.length ? `<span class="pill">${I.sun} Usually ${wx.hiMax}° / ${wx.loMin}°</span>` : ""}</div>
         <div class="perf"></div>
       </section>
       <section class="card stack">
@@ -950,7 +1010,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       <div class="muted">Each card is one option: a resort, your dates and the price you found. Weather and seasons fill in from the dates. Rate how much you want it, and the points add up.</div>
       ${insight}
       <div class="toolbar" role="group" aria-label="Filter options">${chip("all", "All")}${chip("dates", "Our dates")}${perkChips.map((p) => chip("perk:" + p, p)).join("")}</div>
-      <div class="row between"><span class="muted small">${list.length} option${list.length === 1 ? "" : "s"} for ${s.adults + s.kids} people</span>${sortSel}</div>
+      <div class="row between"><span class="muted small">${list.length} option${list.length === 1 ? "" : "s"} for ${party().count} people</span>${sortSel}</div>
       ${cards}${empty}
       <div class="src">Prices: what we found when we looked. ${scoreHow()}</div>
       ${out.length ? `<details class="card"><summary>Ruled out (${out.length})</summary><div class="stack" style="margin-top:12px">${out.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b> <span class="muted small">${esc(span(r.start, r.end))}${Number(r.total) ? " · " + money(r.total) : ""}</span><div class="muted small note">${esc(r.notes)}</div></div>${canWrite ? `<button class="icon-btn" data-act="edit-resort" data-id="${r.id}" aria-label="Edit ${esc(r.name)}">${I.pencil}</button>` : ""}</div>`).join("")}</div></details>` : ""}`;
@@ -1478,10 +1538,89 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   function setSettings(patch) { put("trip", "settings", { ...settings(), ...patch }); }
   function editTrip() {
     openSheet("Trip details", [
+      { k: "name", label: "Trip name", full: true },
       { k: "budget", label: "Total budget ($)", type: "number", full: true },
       { k: "start", label: "Check-in", type: "date" }, { k: "end", label: "Check-out", type: "date" },
-      { k: "adults", label: "Adults", type: "number" }, { k: "kids", label: "Kids", type: "number" },
-    ], settings(), (v) => setSettings(v));
+    ], { ...settings(), name: tripDoc().name }, ({ name, ...v }) => {
+      if (name !== tripDoc().name) put("trips", tripId, { ...tripDoc(), name });
+      setSettings(v);
+    });
+  }
+
+  // ---------- My Trips: every trip, which one is open, and who's going ----------
+  function tripsView() {
+    const ids = tripIds().sort((a, b) => String(settingsOf(a).start || "9").localeCompare(String(settingsOf(b).start || "9")));
+    const card = (id) => {
+      const d = tripDoc(id), s = settingsOf(id), p = party(id), n = nights(s.start, s.end), on = id === tripId;
+      return `<section class="card stack trip-card ${on ? "on" : ""}">
+        <div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><div><h3>${esc(d.name)}</h3><div class="muted small">${CAL}${esc(span(s.start, s.end))}${n ? ` · ${n} nights` : ""}</div></div>
+          ${on ? `<span class="pill good">Open now</span>` : `<button class="btn sm" data-act="open-trip" data-id="${id}">Open</button>`}</div>
+        <div class="row" style="gap:6px">${p.people.length ? p.people.map((x) => `<span class="pill plain">${esc(x.name)}${x.age !== "" && x.age != null ? ` · ${esc(x.age)}` : ""}</span>`).join("")
+          : `<span class="muted small">${p.count ? `${p.adults} adults · ${p.kids} kids` : "No one added yet"}</span>`}</div>
+        ${canWrite ? `<div class="row" style="gap:8px"><button class="btn ghost sm" data-act="edit-people" data-id="${id}">Who's going</button><button class="btn quiet sm" data-act="rename-trip" data-id="${id}">${I.pencil} Rename</button></div>` : ""}
+      </section>`;
+    };
+    return `<div class="row between"><h2>My Trips</h2>${canWrite ? `<button class="btn sm" data-act="add-trip">${I.plus} New trip</button>` : art("luggage", 40)}</div>
+      <div class="muted">Each trip has its own resorts, budget, plan, dreams, food and to-dos. Tap Open to switch; this phone remembers which one is open.</div>
+      ${ids.map(card).join("")}`;
+  }
+  function newTrip() {
+    openSheet("Start a new trip", [
+      { k: "name", label: "Trip name", full: true, placeholder: "Spring break 2028" },
+      { k: "start", label: "Check-in", type: "date" }, { k: "end", label: "Check-out", type: "date" },
+      { k: "budget", label: "Total budget ($)", type: "number", full: true },
+    ], { budget: "" }, (v) => {
+      // Starts with the same people as the trip that's open; "Who's going" opens next to change them.
+      const was = party(), id = "t" + Date.now().toString(36);
+      put("trips", id, { name: v.name, people: was.people.map((p) => ({ ...p })), created: new Date().toISOString() });
+      switchTrip(id);
+      setSettings({ start: v.start, end: v.end, budget: v.budget, adults: was.adults, kids: was.kids });
+      view.tab = "home"; store.set(LS_KEY + ":tab", "home"); render(); window.scrollTo({ top: 0 });
+      setTimeout(() => editPeople(id), 0);
+    });
+  }
+  function renameTrip(id) {
+    // The open trip and the first one can't be deleted here; switch away first.
+    const canDelete = id !== tripId && id !== "main";
+    openSheet("Rename trip", [{ k: "name", label: "Trip name", full: true }], { name: tripDoc(id).name },
+      (v) => put("trips", id, { ...tripDoc(id), name: v.name }), canDelete ? () => deleteTrip(id) : null);
+  }
+  function deleteTrip(id) {
+    remove("trips", id);
+    if (mode === "local") { TRIP_COLLS.forEach((c) => delete local[phys(c, id)]); saveLocal(); }
+    else TRIP_COLLS.forEach((c) => {
+      let ids = []; const un = listen(c, id, (m) => (ids = Object.keys(m))); if (typeof un === "function") un();
+      ids.forEach((x) => db.collection(phys(c, id)).doc(x).delete().catch(writeFailed));
+    });
+    toast("Trip deleted.");
+  }
+  // Who's going: a name and (for kids) an age on the trip, one row each. Nothing saves until Done.
+  let peopleDraft = null;
+  function editPeople(id, rows) {
+    const doc = tripDoc(id);
+    peopleDraft = { id, rows: rows || (doc.people || []).map((p) => ({ ...p })) };
+    if (!peopleDraft.rows.length) peopleDraft.rows.push({ name: "", age: "" });
+    const root = document.getElementById("sheet-root"), keep = root.querySelector(".sheet");
+    root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet pinned" role="dialog" aria-modal="true" aria-label="Who's going" style="animation:${keep ? "none" : ""}">
+      <div class="sheet-top"><div class="sheet-head"><div><h2>Who's going</h2><div class="muted small">${esc(doc.name)}</div></div><div class="row" style="gap:8px;flex-wrap:nowrap">
+        <button type="button" class="btn ghost sm" data-cancel>Cancel</button><button type="button" class="btn sm" data-act="people-save">Done</button></div></div></div>
+      <div class="muted small">Add an age (on the trip) for the kids. Leave it blank for grown-ups.</div>
+      <div class="people">${peopleDraft.rows.map((p, i) => `<div class="person">
+        <input data-p="name" data-i="${i}" value="${esc(p.name)}" placeholder="Name" aria-label="Name" autocomplete="off">
+        <input data-p="age" data-i="${i}" type="number" inputmode="numeric" min="0" max="120" value="${esc(p.age ?? "")}" placeholder="Age" aria-label="Age">
+        <button type="button" class="icon-btn" data-act="person-del" data-n="${i}" aria-label="Remove ${esc(p.name || "this person")}">${I.x}</button></div>`).join("")}</div>
+      <div><button type="button" class="btn ghost sm" data-act="person-add">${I.plus} Add someone</button></div></div></div>`;
+    pinTop(root.querySelector(".sheet"));
+    root.querySelector("[data-cancel]").onclick = closeSheet;
+  }
+  function readPeople() {
+    document.querySelectorAll("#sheet-root [data-p]").forEach((el) => (peopleDraft.rows[el.dataset.i][el.dataset.p] = el.value.trim()));
+    return peopleDraft.rows;
+  }
+  function savePeople() {
+    const people = readPeople().filter((p) => p.name).map((p) => ({ name: p.name, age: p.age === "" ? "" : Number(p.age) }));
+    put("trips", peopleDraft.id, { ...tripDoc(peopleDraft.id), people });
+    closeSheet();
   }
   function editWish(id) {
     const cur = id ? state.wishes[id] : { park: PARKS[0], hearts: [me], done: false };
@@ -1550,6 +1689,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       setCmpIds(i >= 0 ? ids.filter((x) => x !== id) : [...ids, id].slice(-3)); return;
     }
     if (act === "receipt") { showReceipt(id); return; }
+    if (act === "open-trip") { switchTrip(id); toast(`${tripDoc().name} is open.`); return; }
     if (act === "news-tag") { view.newsTag = el.dataset.k; if (el.closest(".sheet")) showNews(); else render(); return; }
     if (act === "news-more") { view.newsTag = "all"; showNews(); return; }
     if (!canWrite) return;
@@ -1579,6 +1719,12 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "pick") { const r = state.resorts[id]; setSettings({ pickId: id, start: r.start || settings().start, end: r.end || settings().end }); toast(`${r.name} is our pick!`); return; }
     if (act === "unpick") { setSettings({ pickId: "" }); return; }
     if (act === "edit-trip") return editTrip();
+    if (act === "add-trip") return newTrip();
+    if (act === "rename-trip") return renameTrip(id);
+    if (act === "edit-people") return editPeople(id);
+    if (act === "person-add") { const rows = readPeople(); editPeople(peopleDraft.id, [...rows, { name: "", age: "" }]); const ins = document.querySelectorAll('#sheet-root [data-p="name"]'); ins[ins.length - 1].focus(); return; }
+    if (act === "person-del") { const rows = readPeople(); rows.splice(Number(el.dataset.n), 1); editPeople(peopleDraft.id, rows); return; }
+    if (act === "people-save") return savePeople();
     if (act === "add-resort" || act === "edit-resort") return editResort(id);
     if (act === "add-wish" || act === "edit-wish") return editWish(id);
     if (act === "add-food" || act === "edit-food") return editFood(id);

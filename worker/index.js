@@ -8,7 +8,9 @@
 // No sign-in, by choice: anyone with the link can read and edit.
 // `updated` is a strictly increasing counter, so a phone that asks "what changed since n" never misses a write.
 
-const COLLS = new Set(["trip", "resorts", "budget", "wishes", "food", "todos", "dvc", "ref", "proscons", "news", "days"]);
+const COLLS = new Set(["trip", "resorts", "budget", "wishes", "food", "todos", "dvc", "ref", "proscons", "news", "days", "trips"]);
+// A trip after the first keeps its own copy of these as "<coll>@<trip id>" (see TRIP_COLLS in index.html).
+const TRIP_COLL = /^(trip|resorts|budget|wishes|food|todos|proscons|days)@[A-Za-z0-9]{1,24}$/;
 const ID = /^[A-Za-z0-9_\-.~:@+]{1,200}$/;
 const MAX_BODY = 256 * 1024;
 
@@ -35,7 +37,7 @@ async function api(request, env, url) {
   const m = url.pathname.match(/^\/api\/docs\/([^/]+)\/([^/]+)$/);
   if (!m) return json({ error: "not found" }, 404);
   const coll = decodeURIComponent(m[1]), id = decodeURIComponent(m[2]);
-  if (!COLLS.has(coll) || !ID.test(id)) return json({ error: "bad collection or id" }, 400);
+  if (!(COLLS.has(coll) || TRIP_COLL.test(coll)) || !ID.test(id)) return json({ error: "bad collection or id" }, 400);
   if (request.method === "PUT") {
     const text = await request.text();
     if (text.length > MAX_BODY) return json({ error: "too big" }, 413);
