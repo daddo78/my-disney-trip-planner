@@ -384,7 +384,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   I.news = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v10a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5M8 17h3"/></svg>';
   // Park illustrations from our own icon set (icons/parks/). Decorative, so alt is empty; the tab label says what it is.
   const art = (name, size) => `<img class="art" src="icons/parks/${name}.svg" alt=""${size ? ` width="${size}" height="${size}"` : ""}>`;
-  const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Compare", art("globe-plane")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")], ["news", "News", art("tv-tower")]];
+  const TABS = [["home", "Home", art("castle")], ["resorts", "Resorts", art("resort")], ["dates", "Compare", art("checkered-flag")], ["budget", "Budget", art("shopping-bag")], ["dreams", "Dreams", art("sorcerer-hat")], ["todo", "To-do", art("bell")], ["news", "News", art("tv-tower")]];
   const PARK_ART = { "Magic Kingdom": "castle", EPCOT: "spaceship-earth", "Hollywood Studios": "tower-of-terror", "Animal Kingdom": "tree-of-life", "Resort & food": "dole-whip", "Anything else": "sorcerer-hat" };
 
   // Light/dark: follows the phone until someone taps the button, then remembers the choice on this device.
@@ -755,7 +755,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       ${pickHTML}
       ${top.length ? `<section class="card stack"><div class="row between"><span class="eyebrow">Top options</span><button class="btn quiet sm" data-act="tab" data-k="dates">Compare</button></div>
         ${top.map((r) => `<div class="row between"><div><b>${esc(r.name)}</b><div class="muted small">${esc(span(r.start, r.end))} · ${money(r.total)}</div></div><span class="pill ${scoreTone(r.sc.overall)}">${r.sc.overall} / 100</span></div>`).join("")}</section>`
-        : `<section class="card insight">${art("globe-plane", 48)}<div class="row between"><div><b>Which option wins?</b><div class="muted small">Add resorts with dates and prices, rate them, and each one gets an overall score.</div></div><button class="btn sm" data-act="tab" data-k="resorts">Resorts</button></div></section>`}
+        : `<section class="card insight">${art("checkered-flag", 48)}<div class="row between"><div><b>Which option wins?</b><div class="muted small">Add resorts with dates and prices, rate them, and each one gets an overall score.</div></div><button class="btn sm" data-act="tab" data-k="resorts">Resorts</button></div></section>`}
       ${weatherCard(s.start, s.end, true)}
       <section class="card stack">
         <div class="row between"><h2>Coming up</h2><button class="btn quiet sm" data-act="tab" data-k="todo">All to-dos</button></div>
@@ -780,7 +780,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     if (view.sort === "desire") list.sort((a, b) => (Number(b.desire) || 0) - (Number(a.desire) || 0) || (b.sc.overall ?? -1) - (a.sc.overall ?? -1));
 
     const best = rankedOptions()[0];
-    const insight = best && best.sc.overall != null ? `<section class="card insight">${art("globe-plane", 48)}<div class="row between"><div><b>Top score: ${esc(best.name)}</b>
+    const insight = best && best.sc.overall != null ? `<section class="card insight">${art("checkered-flag", 48)}<div class="row between"><div><b>Top score: ${esc(best.name)}</b>
       <div class="muted small">${esc(span(best.start, best.end))}, ${money(best.total)}, ${best.sc.overall} out of 100.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare</button></div></section>` : "";
 
     const chip = (k, label) => `<button class="chip" data-act="filter" data-k="${k}" aria-pressed="${view.filter === k}">${label}</button>`;
@@ -893,7 +893,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       <b>${esc(r.name)}</b><span class="muted small">${esc(r.room)}</span>
       ${s.pickId === r.id ? `<span class="pill picked-badge">Our pick</span>` : canWrite ? `<button class="btn quiet sm" data-act="pick" data-id="${esc(r.id)}">Make it our pick</button>` : ""}</div>`).join("")}</div>`;
 
-    return `<div class="row between"><h2>Compare</h2>${canWrite ? `<button class="btn ghost sm" data-act="tab" data-k="resorts">${I.plus} Add options</button>` : ""}</div>
+    return `<h2>Compare</h2>
       <div class="muted">Your options from the Resorts tab, best score first. Pick up to three to line up side by side.</div>
       ${weightsCard}
       ${rankList}
