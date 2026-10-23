@@ -210,6 +210,16 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .rank .n { font-family: var(--display); font-weight: 600; color: var(--muted); text-align: center; }
 .rank .score { width: 40px; height: 40px; font-size: 1rem; border-width: 2px; }
 .cmprow { display: grid; gap: 6px; }
+.wxicons { display: inline-flex; gap: 6px; align-items: center; }
+.wxic { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; flex: none; }
+.wxic svg { width: 20px; height: 20px; }
+.wxic.hot { background: var(--bad-soft); color: var(--bad); }
+.wxic.rain { background: var(--good-soft); color: var(--c-mugs); }
+.wxic.hurricane { background: var(--warn-soft); color: var(--warn); }
+.optcell .wxicons { gap: 3px; flex-wrap: wrap; }
+.optcell .wxic { width: 25px; height: 25px; } .optcell .wxic svg { width: 16px; height: 16px; }
+.wxkey { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.wxkey .wxic { width: 22px; height: 22px; } .wxkey .wxic svg { width: 15px; height: 15px; }
 .optcell .pill { justify-self: start; white-space: normal; max-width: 100%; margin-bottom: 3px; }
 .optcell .best { color: var(--good); font-weight: 800; font-size: .72rem; }
 .opt-tag { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--opt); color: var(--surface); font-family: var(--display); font-weight: 600; }
@@ -289,8 +299,6 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     other: { label: "Other", color: "var(--c-other)" },
   };
   const PARKS = ["Magic Kingdom", "EPCOT", "Hollywood Studios", "Animal Kingdom", "Resort & food", "Anything else"];
-  const SIZES = ["Studio", "1 Bedroom", "2 Bedroom", "Hotel room"];
-  const KITCHENS = ["Kitchenette", "Full kitchen", "No kitchen"];
   const SOURCES = ["DVC rental", "Disney direct", "Other"];
   const COLLS = ["trip", "resorts", "budget", "wishes", "todos", "dvc", "ref", "proscons", "news"];
 
@@ -582,12 +590,40 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     }
     return f;
   }
-  function seasonPills(a, b) {
+  // Heads-up icons: only shown when they apply. "Hot" is our own cutoff: an average high of 85° or more.
+  const HOT_AT = 85;
+  const WX_IC = {
+    rain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 15a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.5A3.3 3.3 0 0 1 17 15z" fill="currentColor" fill-opacity=".18"/><path d="M8 18l-1 2.5M12 18l-1 2.5M16 18l-1 2.5"/></svg>',
+    hurricane: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 8.8C12 5 14.5 3 19 3"/><path d="M12 15.2C12 19 9.5 21 5 21"/></svg>',
+    hot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 14.5V5.5a2 2 0 0 0-4 0v9a4 4 0 1 0 4 0z" fill="currentColor" fill-opacity=".18"/><path d="M10 15v-5"/><path d="M16 5h3M16 9h3M16 13h2"/></svg>',
+  };
+  function seasonIcons(a, b) {
     const f = seasonsFor(a, b); if (!f) return "";
-    const rain = f.rainy === f.all ? `<span class="pill warn">Rainy season</span>` : f.rainy ? `<span class="pill warn">Rainy season ends ~Oct 15</span>` : `<span class="pill good">Dry season</span>`;
-    const hur = f.peak ? `<span class="pill warn">Peak hurricane season</span>` : f.hur ? `<span class="pill plain">Hurricane season</span>` : "";
-    return rain + hur;
+    const wx = weatherFor(a, b), out = [];
+    if (wx && wx.known.length && wx.hiAvg >= HOT_AT) out.push(["hot", `Hot: usual highs average ${Math.round(wx.hiAvg)}°`]);
+    if (f.rainy) out.push(["rain", f.rainy === f.all ? "Rainy season" : "Rainy season (ends ~Oct 15)"]);
+    if (f.hur) out.push(["hurricane", f.peak ? "Peak hurricane season" : "Hurricane season"]);
+    return out.length ? `<span class="wxicons">${out.map(([k, t]) => `<span class="wxic ${k}" role="img" aria-label="${esc(t)}" title="${esc(t)}">${WX_IC[k]}</span>`).join("")}</span>` : "";
   }
+  const ICON_KEY = `<span class="wxkey"><span class="wxic hot">${WX_IC.hot}</span> hot (highs average ${HOT_AT}°+) <span class="wxic rain">${WX_IC.rain}</span> rainy season <span class="wxic hurricane">${WX_IC.hurricane}</span> hurricane season</span>`;
+  // Amenities and perks are free-form tags. Older options get theirs from the room fields they were saved with.
+  // Duplicates are dropped whatever their capitalization; the first spelling wins.
+  const splitTags = (s) => { const seen = new Set(); return String(s || "").split(",").map((x) => x.trim()).filter((x) => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase())); };
+  function amenitiesOf(r) {
+    if (Array.isArray(r.amenities)) return r.amenities;
+    const a = [];
+    if (r.kitchen && r.kitchen !== "No kitchen") a.push(r.kitchen);
+    if (r.sleeps) a.push(`Sleeps ${r.sleeps}`);
+    return a;
+  }
+  function perksOf(r) {
+    if (Array.isArray(r.perks)) return r.perks;
+    const p = [];
+    if (r.walk) p.push("Walk to EPCOT & Hollywood Studios");
+    if (r.eeh) p.push("Extended evening hours");
+    return p;
+  }
+  const tagPills = (tags, cls) => tags.map((x) => `<span class="pill ${cls}">${esc(x)}</span>`).join("");
   // Overall score, 0–100: a weighted average of how much we want it, price, and weather. Missing parts are left out.
   const SCORE_W = { desire: 4, price: 4, weather: 2 };
   const FACTORS = [["desire", "Want it"], ["price", "Price"], ["weather", "Heat"]];
@@ -769,9 +805,11 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     let list = rankedOptions();
     const out = entries("resorts").filter((r) => r.out);
     const f = view.filter;
-    if (f === "studio") list = list.filter((r) => r.size === "Studio");
-    if (f === "1br") list = list.filter((r) => r.size === "1 Bedroom");
-    if (f === "walk") list = list.filter((r) => r.walk);
+    // Besides "Our dates", the filter chips are the perks most options share.
+    const perkCount = {};
+    list.forEach((r) => perksOf(r).forEach((p) => (perkCount[p] = (perkCount[p] || 0) + 1)));
+    const perkChips = Object.keys(perkCount).filter((p) => perkCount[p] < list.length || list.length === 1).sort((a, b) => perkCount[b] - perkCount[a]).slice(0, 3);
+    if (f.startsWith("perk:")) list = list.filter((r) => perksOf(r).includes(f.slice(5)));
     if (f === "dates") list = list.filter((r) => r.start === s.start && r.end === s.end);
     const per = (r) => (Number(r.total) || 0) / (nights(r.start, r.end) || 1);
     if (view.sort === "price") list.sort((a, b) => (Number(a.total) || 0) - (Number(b.total) || 0));
@@ -782,7 +820,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     const insight = best && best.sc.overall != null ? `<section class="card insight">${art("checkered-flag", 48)}<div class="row between"><div><b>Top score: ${esc(best.name)}</b>
       <div class="muted small">${esc(span(best.start, best.end))}, ${money(best.total)}, ${best.sc.overall} out of 100.</div></div><button class="btn sm" data-act="tab" data-k="dates">Compare</button></div></section>` : "";
 
-    const chip = (k, label) => `<button class="chip" data-act="filter" data-k="${k}" aria-pressed="${view.filter === k}">${label}</button>`;
+    const chip = (k, label) => `<button class="chip" data-act="filter" data-k="${esc(k)}" aria-pressed="${view.filter === k}">${esc(label)}</button>`;
     const sortSel = `<label class="row small muted" for="sort">Sort <select id="sort" data-act="sort" class="chip" style="padding:4px 10px">
       ${[["score", "Best score"], ["price", "Total price"], ["night", "Per night"], ["desire", "Most wanted"]].map(([v, l]) => `<option value="${v}" ${view.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>`;
 
@@ -794,18 +832,14 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
           ${picked ? `<span class="pill picked-badge">Our pick</span> ` : ""}<h3 style="display:inline">${esc(r.name)}</h3>
           <div class="muted small">${esc(r.room)}${r.vibe ? " · " + esc(r.vibe) : ""}</div></div></div>
           <div class="price"><strong class="num">${Number(r.total) ? money(r.total) : "–"}</strong><span class="muted small num">${Number(r.total) ? money(per(r)) + "/night" : "Add a price"}</span></div></div>
-        <div class="tags"><span class="pill ${diffDates ? "warn" : "plain"}">${esc(span(r.start, r.end))} · ${n} nights</span>${seasonPills(r.start, r.end)}</div>
+        <div class="row between"><span class="pill ${diffDates ? "warn" : "plain"}">${esc(span(r.start, r.end))} · ${n} nights</span>${seasonIcons(r.start, r.end)}</div>
         ${wxLine(sc.wx)}
         <div class="row between"><span class="small" style="font-weight:800">${esc(DESIRE[Number(r.desire) || 0])}</span>${starsHTML(r)}</div>
         ${factorBars(sc)}
         ${Number(r.total) ? stayMeter(Number(r.total), t.room) : ""}
-        <div class="tags">
-          <span class="pill plain">Sleeps ${esc(r.sleeps)}</span>
-          <span class="pill ${r.kitchen === "No kitchen" ? "bad" : "plain"}">${esc(r.kitchen)}</span>
-          ${r.walk ? `<span class="pill good">Walk to EPCOT &amp; Hollywood Studios</span>` : ""}
-          ${r.eeh ? `<span class="pill">Extended evening hours</span>` : ""}
-          <span class="pill plain">${esc(r.source)}</span>
-        </div>
+        ${perksOf(r).length ? `<div class="stack" style="gap:6px"><span class="eyebrow">Perks</span><div class="tags">${tagPills(perksOf(r), "good")}</div></div>` : ""}
+        ${amenitiesOf(r).length ? `<div class="stack" style="gap:6px"><span class="eyebrow">Amenities</span><div class="tags">${tagPills(amenitiesOf(r), "plain")}</div></div>` : ""}
+        ${r.source ? `<div class="muted small">Found through ${esc(r.source)}</div>` : ""}
         ${r.notes ? `<div class="note quote">${esc(r.notes)}</div>` : ""}
         ${prosConsHTML(r.name)}
         ${Number(r.total) ? `<div class="soft small">Against the ${money(t.room)} for a resort, this ${sc.left >= 0 ? `leaves <b style="color:var(--good)">${money(sc.left)}</b> to spare` : `goes <b style="color:var(--bad)">${money(-sc.left)} over</b>`}.</div>` : ""}
@@ -822,7 +856,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     return `<div class="row between"><h2>Resorts</h2>${canWrite ? `<button class="btn sm" data-act="add-resort">${I.plus} Add option</button>` : ""}</div>
       <div class="muted">Each card is one option: a resort, your dates and the price you found. Weather and seasons fill in from the dates. Rate how much you want it, and the score does the rest.</div>
       ${insight}
-      <div class="toolbar" role="group" aria-label="Filter options">${chip("all", "All")}${chip("studio", "Studios")}${chip("1br", "1 bedrooms")}${chip("walk", "Walk to parks")}${chip("dates", "Our dates")}</div>
+      <div class="toolbar" role="group" aria-label="Filter options">${chip("all", "All")}${chip("dates", "Our dates")}${perkChips.map((p) => chip("perk:" + p, p)).join("")}</div>
       <div class="row between"><span class="muted small">${list.length} option${list.length === 1 ? "" : "s"} for ${s.adults + s.kids} people</span>${sortSel}</div>
       ${cards}${empty}
       <div class="src">Prices: what we found when we looked. ${scoreHow()}</div>
@@ -833,6 +867,7 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
   function scoreHow() {
     const w = weather();
     return `Score: how much you want it, price (100 if it uses 60% or less of the resort budget (or, if none is set, what the other budget lines leave), 0 once it's 75% over) and heat (the average high: 100 at 80° or cooler, 0 at 90°; rain is shown but not scored), weighted on the Compare tab.
+      Icons: ${ICON_KEY}.
       Weather: ${link(w.url, w.source)}, ${esc(w.years)} averages, not a forecast. Rainy season: ${link(SEASONS.rainy.url, SEASONS.rainy.source)}. Hurricane season: ${link(SEASONS.hurricane.url, SEASONS.hurricane.source)}.`;
   }
 
@@ -876,9 +911,10 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
       ["Dates", null, null, (r) => `<span class="small" style="font-weight:800">${esc(span(r.start, r.end))}</span><span class="muted small">${nights(r.start, r.end)} nights</span>`],
       ["Usual highs", (r) => (r.sc.wx && r.sc.wx.known.length ? r.sc.wx.hiAvg : null), "low", (r) => r.sc.wx && r.sc.wx.known.length ? `<strong class="num">${r.sc.wx.hiMin === r.sc.wx.hiMax ? r.sc.wx.hiMax : `${r.sc.wx.hiMin}–${r.sc.wx.hiMax}`}°</strong><span class="muted small">lows ${r.sc.wx.loMin}–${r.sc.wx.loMax}°</span>` : "–"],
       ["Rain", (r) => (r.sc.wx && r.sc.wx.known.length ? r.sc.wx.rainAvg : null), "low", (r) => r.sc.wx && r.sc.wx.known.length ? `<strong class="num">${r.sc.wx.rainAvg}%</strong><span class="muted small">~${Math.round(r.sc.wx.rainDays)} rainy days</span>` : "–"],
-      ["Seasons", null, null, (r) => seasonPills(r.start, r.end)],
-      ["Room", null, null, (r) => `<span class="small" style="font-weight:800">${esc(r.size || "")}</span><span class="muted small">Sleeps ${esc(r.sleeps)} · ${esc(r.kitchen)}</span>`],
-      ["Walk to EPCOT & Studios", (r) => (r.walk ? 1 : 0), "high", (r) => r.walk ? `<span class="pill good">Yes</span>` : `<span class="muted small">No</span>`],
+      ["Heads up", null, null, (r) => seasonIcons(r.start, r.end) || `<span class="muted small">None</span>`],
+      ["Room", null, null, (r) => `<span class="small" style="font-weight:800">${esc(r.room || "")}</span>`],
+      ["Perks", null, null, (r) => tagPills(perksOf(r), "good") || `<span class="muted small">None yet</span>`],
+      ["Amenities", null, null, (r) => tagPills(amenitiesOf(r), "plain") || `<span class="muted small">None yet</span>`],
       ["Pros & cons", null, null, (r) => pcCount(r.name) || `<span class="muted small">None yet</span>`],
     ];
     const grid = cols.length ? rows.map(([label, val, dir, cell]) => {
@@ -1050,24 +1086,27 @@ details summary { cursor: pointer; font-weight: 800; color: var(--muted); }
     { k: "total", label: "Total price ($)", type: "number" },
     { k: "source", label: "Found it through", type: "select", options: SOURCES },
     { k: "desire", label: "How much do we want it?", type: "select", full: true, options: DESIRE.map((d, i) => [String(i), i ? `${"★".repeat(i)}${"☆".repeat(5 - i)}  ${d}` : d]) },
-    { k: "size", label: "Size", type: "select", options: SIZES },
-    { k: "sleeps", label: "Sleeps", type: "number" },
-    { k: "kitchen", label: "Kitchen", type: "select", options: KITCHENS },
-    { k: "vibe", label: "Vibe", placeholder: "Florida beach, Italy…" },
-    { k: "walk", label: "Walk to EPCOT & Hollywood Studios", type: "check", full: true },
-    { k: "eeh", label: "Extended evening hours", type: "check", full: true },
+    { k: "perks", label: "Perks (separate with commas)", full: true, placeholder: "Walk to EPCOT, Extended evening hours, Boat to the parks" },
+    { k: "amenities", label: "Amenities (separate with commas)", full: true, placeholder: "Kitchenette, 2 showers, Sleeps 5, Great pool" },
+    { k: "vibe", label: "Vibe", full: true, placeholder: "Florida beach, Italy…" },
     { k: "notes", label: "Notes", type: "textarea", full: true },
     { k: "out", label: "Ruled out", type: "check", full: true },
   ];
   function editResort(id) {
     const s = settings();
-    const cur = id ? state.resorts[id] : { size: "Studio", sleeps: 5, kitchen: "Kitchenette", source: "DVC rental", start: s.start, end: s.end, eeh: true, desire: 0, hearts: [] };
-    openSheet(id ? "Edit option" : "Add a resort option", RESORT_FIELDS(), { ...cur, desire: String(Number(cur.desire) || 0) },
+    const cur = id ? state.resorts[id] : { source: "DVC rental", start: s.start, end: s.end, desire: 0, hearts: [], perks: [], amenities: [] };
+    openSheet(id ? "Edit option" : "Add a resort option", RESORT_FIELDS(),
+      { ...cur, desire: String(Number(cur.desire) || 0), perks: perksOf(cur).join(", "), amenities: amenitiesOf(cur).join(", ") },
       (v) => {
-        const next = { ...cur, ...v, desire: Number(v.desire) || 0, hearts: [...(cur.hearts || [])] };
-        // A new option for a DVC resort we know picks up its walkability and vibe.
+        const next = { ...cur, ...v, desire: Number(v.desire) || 0, perks: splitTags(v.perks), amenities: splitTags(v.amenities), hearts: [...(cur.hearts || [])] };
+        // The old room fields now live in the tags.
+        ["size", "sleeps", "kitchen", "walk", "eeh"].forEach((k) => delete next[k]);
+        // A new option at a DVC resort we know picks up its walkability and vibe.
         const ref = Object.values(charts()).find((c) => c.name.toLowerCase() === next.name.toLowerCase());
-        if (!id && ref) { next.walk = next.walk || !!ref.walk; next.vibe = next.vibe || ref.vibe || ""; }
+        if (!id && ref) {
+          if (ref.walk && !next.perks.some((p) => /walk/i.test(p))) next.perks.unshift("Walk to EPCOT & Hollywood Studios");
+          next.vibe = next.vibe || ref.vibe || "";
+        }
         put("resorts", id || uid(), next);
       },
       id ? () => { remove("resorts", id); if (s.pickId === id) setSettings({ pickId: "" }); } : null);

@@ -21,7 +21,7 @@ A phone-first planner for a Walt Disney World trip, built for my wife. She plans
   - `trip/settings`: `{budget, start, end, adults, kids, pickId, tixDays, tixAdults, tixKids, scoreW: {desire, price, weather}}` (weights 0–5); `trip/compare`: `{ids: [resort ids, up to 3]}`
   - `proscons/<resort-slug>`: `{name, pros[], cons[]}` (items `{id, text, by}`)
   - `dvc/<resort>` (official 2027 points charts), `ref/seasons2027`, `ref/weather`, `ref/tickets`, `ref/news`, `news/<id>`
-  - `resorts/<id>`: `{name, room, size, sleeps, kitchen, start, end, total, points, ppp, source, walk, eeh, vibe, notes, desire (0–5 stars), hearts[], out}`
+  - `resorts/<id>`: `{name, room, start, end, total, source, desire (0–5 stars), perks[], amenities[], vibe, notes, hearts[], out} (perks and amenities are free tags; older docs still have size/sleeps/kitchen/walk/eeh, which show as tags until the option is edited and saved)`
   - `budget/<cat>`: `{label, cat, amount}`, one per category (stay, tickets, travel, food, mugs, fun, other), set by hand on the Budget tab. Older line items in a category add up until that category is edited, then fold into the one doc. A blank stay line uses the picked resort's price; a set stay line is what resort prices are scored against.
   - `wishes/<id>`: `{text, park, hearts[], done}`
   - `todos/<id>`: `{text, months|days|due, done, note}` (dates count back from check-in)

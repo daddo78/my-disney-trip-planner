@@ -5,7 +5,7 @@ A phone-friendly planner, in vintage Disneyland ticket-book colors, for our Walt
 Live at **https://dtp.ondorilabo.com**. Both phones see the same plan, and changes show up on the other phone within about 5 seconds.
 
 - **Home**: countdown to check-in, budget at a glance, our resort pick, usual weather for our dates, what's coming up.
-- **Resorts**: one card per option (resort, dates, and the price we found). Weather, rainy season and hurricane season fill in from the dates, a 1–5 star "how much we want it" rating, pros and cons, an overall score out of 100, and "our pick".
+- **Resorts**: one card per option (resort, dates, and the price we found). Perks and amenities are free tags. Icons flag hot dates, rainy season and hurricane season, from the dates. A 1–5 star "how much we want it" rating, pros and cons, an overall score out of 100, and "our pick".
 - **Compare**: every option ranked by score, "what matters most" weights (want it / price / weather), and up to three options side by side: price, per night, budget, rating, dates, usual highs, rain, seasons, room, walk to the parks, pros and cons.
 - **Budget**: one amount per category that we set ourselves (resort, tickets, travel, food, mugs, fun, other), against the total budget. Left blank, the resort line uses our pick's price.
 - **Dream list**: rides, snacks and moments by park.
