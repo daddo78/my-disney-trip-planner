@@ -1536,15 +1536,19 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       id ? () => { remove("resorts", id); if (s.pickId === id) setSettings({ pickId: "" }); } : null);
   }
   function setSettings(patch) { put("trip", "settings", { ...settings(), ...patch }); }
-  function editTrip() {
+  // Any trip's details, open or not. The open trip and the first one can't be deleted here; switch away first.
+  function editTrip(id = tripId) {
     openSheet("Trip details", [
       { k: "name", label: "Trip name", full: true },
       { k: "budget", label: "Total budget ($)", type: "number", full: true },
       { k: "start", label: "Check-in", type: "date" }, { k: "end", label: "Check-out", type: "date" },
-    ], { ...settings(), name: tripDoc().name }, ({ name, ...v }) => {
-      if (name !== tripDoc().name) put("trips", tripId, { ...tripDoc(), name });
-      setSettings(v);
-    });
+    ], { ...settingsOf(id), name: tripDoc(id).name }, ({ name, ...v }) => {
+      if (name !== tripDoc(id).name) put("trips", id, { ...tripDoc(id), name });
+      if (id === tripId) return setSettings(v);
+      const next = { ...settingsOf(id), ...v };
+      if (mode === "local") { const p = phys("trip", id); local[p] = { ...(local[p] || {}), settings: next }; saveLocal(); render(); }
+      else { otherSettings[id] = next; render(); db.collection(phys("trip", id)).doc("settings").set(next).catch(writeFailed); }
+    }, id !== tripId && id !== "main" ? () => deleteTrip(id) : null);
   }
 
   // ---------- My Trips: every trip, which one is open, and who's going ----------
@@ -1557,7 +1561,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
           ${on ? `<span class="pill good">Open now</span>` : `<button class="btn sm" data-act="open-trip" data-id="${id}">Open</button>`}</div>
         <div class="row" style="gap:6px">${p.people.length ? p.people.map((x) => `<span class="pill plain">${esc(x.name)}${x.age !== "" && x.age != null ? ` · ${esc(x.age)}` : ""}</span>`).join("")
           : `<span class="muted small">${p.count ? `${p.adults} adults · ${p.kids} kids` : "No one added yet"}</span>`}</div>
-        ${canWrite ? `<div class="row" style="gap:8px"><button class="btn ghost sm" data-act="edit-people" data-id="${id}">Who's going</button><button class="btn quiet sm" data-act="rename-trip" data-id="${id}">${I.pencil} Rename</button></div>` : ""}
+        ${canWrite ? `<div class="row" style="gap:8px"><button class="btn ghost sm" data-act="edit-people" data-id="${id}">Who's going</button><button class="btn quiet sm" data-act="edit-trip" data-id="${id}">${I.pencil} Edit</button></div>` : ""}
       </section>`;
     };
     return `<div class="row between"><h2>My Trips</h2>${canWrite ? `<button class="btn sm" data-act="add-trip">${I.plus} New trip</button>` : art("luggage", 40)}</div>
@@ -1578,12 +1582,6 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       view.tab = "home"; store.set(LS_KEY + ":tab", "home"); render(); window.scrollTo({ top: 0 });
       setTimeout(() => editPeople(id), 0);
     });
-  }
-  function renameTrip(id) {
-    // The open trip and the first one can't be deleted here; switch away first.
-    const canDelete = id !== tripId && id !== "main";
-    openSheet("Rename trip", [{ k: "name", label: "Trip name", full: true }], { name: tripDoc(id).name },
-      (v) => put("trips", id, { ...tripDoc(id), name: v.name }), canDelete ? () => deleteTrip(id) : null);
   }
   function deleteTrip(id) {
     remove("trips", id);
@@ -1718,9 +1716,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "toggle") { const c = el.dataset.c, cur = state[c][id]; put(c, id, { ...cur, done: !cur.done }); return; }
     if (act === "pick") { const r = state.resorts[id]; setSettings({ pickId: id, start: r.start || settings().start, end: r.end || settings().end }); toast(`${r.name} is our pick!`); return; }
     if (act === "unpick") { setSettings({ pickId: "" }); return; }
-    if (act === "edit-trip") return editTrip();
+    if (act === "edit-trip") return editTrip(id);
     if (act === "add-trip") return newTrip();
-    if (act === "rename-trip") return renameTrip(id);
     if (act === "edit-people") return editPeople(id);
     if (act === "person-add") { const rows = readPeople(); editPeople(peopleDraft.id, [...rows, { name: "", age: "" }]); const ins = document.querySelectorAll('#sheet-root [data-p="name"]'); ins[ins.length - 1].focus(); return; }
     if (act === "person-del") { const rows = readPeople(); rows.splice(Number(el.dataset.n), 1); editPeople(peopleDraft.id, rows); return; }
