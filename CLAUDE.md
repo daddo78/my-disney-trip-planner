@@ -12,7 +12,8 @@ A phone-first planner for a Walt Disney World trip, built for my wife. She plans
 
 ## The app
 - **Live at https://dtp.ondorilabo.com.** A Cloudflare Worker (`worker/index.js`, config `wrangler.jsonc`) serves `index.html` and keeps the shared plan in the D1 database `disney-trip-planner` (table `docs`). The README has the API and the deploy command. There's no sign-in, by choice.
-- One self-contained page: `index.html` (HTML/CSS/JS, no build step). Tabs: Home, Resorts, Compare (tab key `dates`), Budget, Dreams, To-do. News is a card on Home (newest 3, stories that mention one of our resorts first, matched by `RESORT_WORDS`) with the full list in a pop-up.
+- One self-contained page: `index.html` (HTML/CSS/JS, no build step). Tabs (`TABS`): Home, Resorts, Compare (tab key `dates`), Plan, Budget, Dreams, To-do, News. The bar shows 5 plus a "More" button, like Teams; More has a Reorder list (Home stays first), saved per phone in localStorage (`our-disney-trip-v1:nav`). News is also a card on Home (newest 3, stories that mention one of our resorts first, matched by `RESORT_WORDS`) with the full list in a pop-up.
+- Plan tab: one card per day, check-in through check-out. Each day is a park from `DAY_PARKS` (incl. Universal) or a Rest/Travel day, with a schedule of items by time. Park art is `PARK_ART` (Universal = globe, Rest day = canopy boat, Travel day = vintage car).
 - Resorts is where she enters scenarios by hand (resort, dates, the price she found, a 1–5 star rating, perks and amenities tags); real prices can't be synced. Each gets points (`PTS` and `scoreOf` in `index.html`), with a receipt in a pop-up when you tap the score: +12 per star, +3 per night (up to 14), +1 per $100 under the resort budget (max +10) or −2 per $100 over, −3 per degree the usual high averages above 82°, +3 per perk (up to 4), +1 per amenity (up to 6), ±1 per pro/con (net ±5). Unrated options get no points. No user weights, by choice. Rainy season (NWS, May 27 – Oct 15) and hurricane season (NOAA, Jun 1 – Nov 30) are shown as icons, not scored. Compare ranks by points and shows up to 3 side by side.
 - Storage modes: on the website it uses the Worker API and checks for changes every 5 seconds. The claude.ai artifact (https://claude.ai/artifact/XoojCoRWJGJiB31w4jiKoQ) still runs but is **no longer the live copy**. Opened as a file, it uses localStorage seeded from `STARTER`.
 - Change live data through the API (`PUT`/`DELETE https://dtp.ondorilabo.com/api/docs/<coll>/<id>`), not with the artifact tools.
@@ -25,6 +26,7 @@ A phone-first planner for a Walt Disney World trip, built for my wife. She plans
   - `budget/<cat>`: `{label, cat, amount}`, one per category (stay, tickets, travel, food, mugs, fun, other), set by hand on the Budget tab. Older line items in a category add up until that category is edited, then fold into the one doc. A blank stay line uses the picked resort's price; a set stay line is what resort prices are scored against.
   - `wishes/<id>`: `{text, park, hearts[], done}`
   - `todos/<id>`: `{text, months|days|due, done, note}` (dates count back from check-in)
+  - `days/d<N>` (Day N of the trip, counted from check-in, so a plan stays put if the dates move): `{park, note, items: [{id, time "HH:MM" or "", text, kind (ride|food|show|shop|rest|other)}]}`
 - The db is already seeded with her real quotes (from her screenshots of a DVC rental site). The budget lines for tickets, travel, food, mugs and souvenirs are **my guesses**, marked "Estimate".
 
 ## Status
