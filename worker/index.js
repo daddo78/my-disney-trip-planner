@@ -1,7 +1,7 @@
 // Our Disney Trip on dtp.ondorilabo.com: serves index.html and keeps everyone's trips in D1.
 //
 // Accounts (worker/migrations/0002_accounts.sql): sign in with a 6-digit code sent by email (Resend), stay signed in
-// with an HttpOnly session cookie. Friends are made with a personal friend link. A trip is seen and edited by its
+// with an HttpOnly session cookie. Friends are made with a personal 6-character friend code. A trip is seen and edited by its
 // members: whoever created it, plus the accounts linked on its Who's going list.
 //
 //   POST   /api/auth/start {email}         email a sign-in code
@@ -9,8 +9,8 @@
 //   POST   /api/auth/signout
 //   GET    /api/me                         me, my friends, names of everyone on my trips, my trip ids
 //   PUT    /api/me {name}
-//   POST   /api/friends/link               a new friend link (the old one stops working)
-//   POST   /api/friends/accept {link}      become friends with the link's owner
+//   POST   /api/friends/code               a new friend code (the old one stops working)
+//   POST   /api/friends/add {code}         become friends with the code's owner
 //   DELETE /api/friends/<id>
 //   GET    /api/docs?since=<n>             docs I can see changed after cursor n (0 = everything), the new cursor, my trip ids
 //   PUT    /api/docs/<coll>/<id>           save a doc in one of my trips
@@ -33,6 +33,8 @@ const MAX_BODY = 256 * 1024;
 const COOKIE = "dtp_session";
 const SESSION_DAYS = 365, CODE_MINUTES = 10, CODE_TRIES = 5, RESEND_WAIT = 30e3;
 const FROM = "Our Disney Trip <trips@ondorilabo.com>";
+// Friend codes: 6 characters, leaving out 0/O, 1/I/L so they're easy to read aloud and type. Ten wrong tries an hour.
+const CODE_CHARS = "23456789ABCDEFGHJKMNPQRSTUVWXYZ", FRIEND_CODE = /^[2-9A-HJKMNP-Z]{6}$/, FRIEND_TRIES = 10;
 
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
   status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers },
@@ -55,6 +57,7 @@ function tripOf(coll, id) {
 }
 
 // ---------- accounts ----------
+const friendCode = () => [...crypto.getRandomValues(new Uint8Array(6))].map((x) => CODE_CHARS[x % CODE_CHARS.length]).join("");
 const hex = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((x) => x.toString(16).padStart(2, "0")).join("");
 async function sha(s) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
 function cookieOf(request) { const m = (request.headers.get("cookie") || "").match(new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]{64})`)); return m ? m[1] : null; }
@@ -62,7 +65,7 @@ const setCookie = (token, days) => `${COOKIE}=${token}; Path=/; HttpOnly; Secure
 
 async function whoIs(request, db) {
   const token = cookieOf(request); if (!token) return null;
-  return db.prepare("SELECT u.id, u.email, u.name, u.link FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.hash = ?1 AND s.expires > ?2")
+  return db.prepare("SELECT u.id, u.email, u.name, u.code FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.hash = ?1 AND s.expires > ?2")
     .bind(await sha(token), Date.now()).first();
 }
 async function body(request) { try { const b = await request.json(); return b && typeof b === "object" ? b : {}; } catch { return {}; } }
@@ -108,7 +111,7 @@ async function auth(request, env, path) {
     let user = await db.prepare("SELECT id FROM users WHERE email = ?1").bind(email).first();
     if (!user) {
       user = { id: hex(8) };
-      await db.prepare("INSERT INTO users (id, email, name, link, created) VALUES (?1, ?2, '', ?3, ?4)").bind(user.id, email, hex(12), new Date().toISOString()).run();
+      await db.prepare("INSERT INTO users (id, email, name, code, created) VALUES (?1, ?2, '', ?3, ?4)").bind(user.id, email, friendCode(), new Date().toISOString()).run();
     }
     const token = hex(32);
     await db.prepare("INSERT INTO sessions (hash, user_id, expires) VALUES (?1, ?2, ?3)").bind(await sha(token), user.id, Date.now() + SESSION_DAYS * 864e5).run();
@@ -125,12 +128,20 @@ async function auth(request, env, path) {
 const myTrips = async (db, uid) => (await db.prepare("SELECT trip FROM members WHERE user_id = ?1").bind(uid).all()).results.map((r) => r.trip);
 const friendIds = async (db, uid) => new Set((await db.prepare("SELECT b FROM friends WHERE a = ?1").bind(uid).all()).results.map((r) => r.b));
 
+// A new friend code for this account (retried on the rare clash with someone else's).
+async function newCode(db, uid) {
+  for (let i = 0; i < 5; i++) {
+    const code = friendCode();
+    try { await db.prepare("UPDATE users SET code = ?1 WHERE id = ?2").bind(code, uid).run(); return code; } catch (e) { if (i === 4) throw e; }
+  }
+}
 async function meInfo(db, user) {
+  if (!FRIEND_CODE.test(user.code || "")) user = { ...user, code: await newCode(db, user.id) };
   const friends = (await db.prepare("SELECT u.id, u.name FROM friends f JOIN users u ON u.id = f.b WHERE f.a = ?1 ORDER BY u.name").bind(user.id).all()).results;
   // Names for hearts, pros and cons, and Who's going: everyone on my trips, plus my friends.
   const others = (await db.prepare(`SELECT DISTINCT u.id, u.name FROM members m JOIN members o ON o.trip = m.trip JOIN users u ON u.id = o.user_id WHERE m.user_id = ?1`).bind(user.id).all()).results;
   const people = {}; [...others, ...friends].forEach((p) => (people[p.id] = p.name || "Someone"));
-  return { user: { id: user.id, email: user.email, name: user.name, link: user.link }, friends, people, trips: await myTrips(db, user.id) };
+  return { user: { id: user.id, email: user.email, name: user.name, code: user.code }, friends, people, trips: await myTrips(db, user.id) };
 }
 
 async function account(request, env, path, user) {
@@ -142,16 +153,18 @@ async function account(request, env, path, user) {
     await db.prepare("UPDATE users SET name = ?1 WHERE id = ?2").bind(name, user.id).run();
     return json(await meInfo(db, { ...user, name }));
   }
-  if (path === "/api/friends/link" && request.method === "POST") {
-    const link = hex(12);
-    await db.prepare("UPDATE users SET link = ?1 WHERE id = ?2").bind(link, user.id).run();
-    return json(await meInfo(db, { ...user, link }));
-  }
-  if (path === "/api/friends/accept" && request.method === "POST") {
-    const link = String((await body(request)).link || "");
-    const them = /^[a-f0-9]{24}$/.test(link) && await db.prepare("SELECT id, name FROM users WHERE link = ?1").bind(link).first();
-    if (!them) return oops("That friend link doesn't work anymore. Ask for a new one.", 404);
-    if (them.id === user.id) return oops("That's your own friend link. Send it to a friend!");
+  if (path === "/api/friends/code" && request.method === "POST") return json(await meInfo(db, { ...user, code: await newCode(db, user.id) }));
+  if (path === "/api/friends/add" && request.method === "POST") {
+    const code = String((await body(request)).code || "").toUpperCase().replace(/[\s-]/g, "");
+    const tries = await db.prepare("SELECT since, count FROM friend_tries WHERE user_id = ?1").bind(user.id).first();
+    const fresh = !tries || Date.now() - tries.since > 36e5;
+    if (!fresh && tries.count >= FRIEND_TRIES) return oops("Too many wrong codes. Try again in an hour.", 429);
+    const them = FRIEND_CODE.test(code) && await db.prepare("SELECT id, name FROM users WHERE code = ?1").bind(code).first();
+    if (!them) {
+      await db.prepare("INSERT OR REPLACE INTO friend_tries (user_id, since, count) VALUES (?1, ?2, ?3)").bind(user.id, fresh ? Date.now() : tries.since, fresh ? 1 : tries.count + 1).run();
+      return oops("No one has that friend code. Check it with your friend.", 404);
+    }
+    if (them.id === user.id) return oops("That's your own friend code. Send it to a friend!");
     await db.batch([
       db.prepare("INSERT OR IGNORE INTO friends (a, b) VALUES (?1, ?2)").bind(user.id, them.id),
       db.prepare("INSERT OR IGNORE INTO friends (a, b) VALUES (?1, ?2)").bind(them.id, user.id),

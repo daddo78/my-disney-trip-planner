@@ -1,9 +1,10 @@
 -- One-time: give the trips from before accounts existed (no owner yet) to Brittany (owner) and Dan.
 -- Their account ids are "brittany" and "dan", the same ids the old hearts and pros & cons use.
+-- (Needs migrations 0002 and 0003. The placeholder friend codes are replaced with real ones on first sign-in.)
 -- Fill in the emails when running it (they aren't kept in the repo), e.g.:
 --   sed -e 's/{{BRITTANY_EMAIL}}/her@example.com/' -e 's/{{DAN_EMAIL}}/him@example.com/' tools/seed-accounts.sql > seed.sql
 --   npx wrangler@4 d1 execute disney-trip-planner --remote --file seed.sql
-INSERT OR IGNORE INTO users (id, email, name, link, created) VALUES
+INSERT OR IGNORE INTO users (id, email, name, code, created) VALUES
   ('brittany', lower('{{BRITTANY_EMAIL}}'), 'Brittany', lower(hex(randomblob(12))), datetime('now')),
   ('dan', lower('{{DAN_EMAIL}}'), 'Dan', lower(hex(randomblob(12))), datetime('now'));
 INSERT OR IGNORE INTO friends (a, b) VALUES ('brittany', 'dan'), ('dan', 'brittany');
