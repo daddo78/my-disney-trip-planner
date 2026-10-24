@@ -711,6 +711,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (!site) { toast("Couldn't load your trips. Reload to try again."); return; }
     db = site; mode = "shared";
     subscribe();
+    // Friends and names change when someone adds your code; check every 30 seconds while the app is open.
+    setInterval(() => { if (document.visibilityState === "visible") refreshAccount(); }, 30000);
     // Someone brand new gets a first trip with them on it, and the trip details open to name it.
     if (!account.trips.length && !Object.keys(state.trips).length) {
       const id = "t" + Date.now().toString(36);
@@ -1734,9 +1736,10 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       { k: "start", label: "Check-in", type: "date" }, { k: "end", label: "Check-out", type: "date" },
       { k: "budget", label: "Total budget ($)", type: "number", full: true },
     ], { budget: "" }, (v) => {
-      // Starts with the same people as the trip that's open; "Who's going" opens next to change them.
+      // Starts with the same people as the trip that's open, but only your own account link comes along: a new trip
+      // isn't shared with anyone until you link them on "Who's going", which opens next.
       const was = party(), id = "t" + Date.now().toString(36);
-      put("trips", id, { name: v.name, people: was.people.map((p) => ({ ...p })), created: new Date().toISOString() });
+      put("trips", id, { name: v.name, people: was.people.map(({ uid: u, ...p }) => (u === me ? { ...p, uid: u } : p)), created: new Date().toISOString() });
       switchTrip(id);
       setSettings({ start: v.start, end: v.end, budget: v.budget, adults: was.count, kids: 0 });
       view.tab = "home"; store.set(LS_KEY + ":tab", "home"); render(); window.scrollTo({ top: 0 });
@@ -1834,7 +1837,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const act = el.dataset.act, id = el.dataset.id;
     if (act === "close-sheet") { if (e.target === el) closeSheet(); return; }
     if (act === "sort") return;
-    if (act === "tab") { view.tab = el.dataset.k; store.set(LS_KEY + ":tab", view.tab); closeSheet(); render(); window.scrollTo({ top: 0 }); return; }
+    if (act === "tab") { view.tab = el.dataset.k; store.set(LS_KEY + ":tab", view.tab); closeSheet(); render(); window.scrollTo({ top: 0 }); if (view.tab === "friends") refreshAccount(); return; }
     if (act === "more") { showMore(); return; }
     if (act === "reorder") { showMore(navOrder()); return; }
     if (act === "nav-move") {
@@ -1890,7 +1893,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "unpick") { setSettings({ pickId: "" }); return; }
     if (act === "edit-trip") return editTrip(id);
     if (act === "add-trip") return newTrip();
-    if (act === "edit-people") return editPeople(id);
+    // Fresh friends first, so someone who just added your code is in the account picker.
+    if (act === "edit-people") return account ? refreshAccount().finally(() => editPeople(id)) : editPeople(id);
     if (act === "person-add") { const rows = readPeople(); editPeople(peopleDraft.id, [...rows, { name: "", rel: "" }]); const ins = document.querySelectorAll('#sheet-root [data-p="name"]'); ins[ins.length - 1].focus(); return; }
     if (act === "person-del") { const rows = readPeople(); rows.splice(Number(el.dataset.n), 1); editPeople(peopleDraft.id, rows); return; }
     if (act === "people-save") return savePeople();
