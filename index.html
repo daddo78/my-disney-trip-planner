@@ -1095,7 +1095,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
         <h1>${esc(tripDoc().name)}</h1>
         <div class="count">${count}</div>
         ${who.people.length ? `<div class="who">${esc(nameList(who.people))}</div>` : ""}
-        <div class="meta"><span class="pill">${esc(span(s.start, s.end))}</span><span class="pill">${n} nights</span>${canWrite ? `<button class="pill" data-act="edit-people" data-id="${tripId}" aria-label="Who's going">` : `<span class="pill">`}${who.count} going${canWrite ? "</button>" : "</span>"}${wx && wx.known.length ? `<span class="pill">${I.sun} Usually ${wx.hiMax}° / ${wx.loMin}°</span>` : ""}</div>
+        <div class="meta"><span class="pill">${esc(span(s.start, s.end))}</span><span class="pill">${n} nights</span>${canWrite ? `<button class="pill" data-act="edit-trip" aria-label="Edit trip and who's going">` : `<span class="pill">`}${who.count} going${canWrite ? "</button>" : "</span>"}${wx && wx.known.length ? `<span class="pill">${I.sun} Usually ${wx.hiMax}° / ${wx.loMin}°</span>` : ""}</div>
         <div class="perf"></div>
       </section>
       <section class="card stack">
@@ -1698,19 +1698,82 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       id ? () => { remove("resorts", id); if (s.pickId === id) setSettings({ pickId: "" }); } : null);
   }
   function setSettings(patch) { put("trip", "settings", { ...settings(), ...patch }); }
-  // Any trip's details, open or not. The open trip and the first one can't be deleted here; switch away first.
-  function editTrip(id = tripId) {
-    openSheet("Trip details", [
-      { k: "name", label: "Trip name", full: true },
-      { k: "budget", label: "Total budget ($)", type: "number", full: true },
-      { k: "start", label: "Check-in", type: "date" }, { k: "end", label: "Check-out", type: "date" },
-    ], { ...settingsOf(id), name: tripDoc(id).name }, ({ name, ...v }) => {
-      if (name !== tripDoc(id).name) put("trips", id, { ...tripDoc(id), name });
-      if (id === tripId) return setSettings(v);
-      const next = { ...settingsOf(id), ...v };
-      if (mode === "local") { const p = phys("trip", id); local[p] = { ...(local[p] || {}), settings: next }; saveLocal(); render(); }
-      else { otherSettings[id] = next; render(); db.collection(phys("trip", id)).doc("settings").set(next).catch(writeFailed); }
-    }, id !== tripId && id !== "main" && (!account || tripDoc(id).owner === me) ? () => deleteTrip(id) : null);
+  // ---------- Edit trip: name, dates, budget and Who's going in one pop-up ----------
+  // Any trip, open or not; id = null starts a new one. Nothing saves until Save. The open trip and the first one
+  // can't be deleted here; switch away first. `keep` redraws the same draft (after adding or removing a person).
+  let tripDraft = null;
+  function editTrip(id = tripId, keep) {
+    if (!keep) {
+      const isNew = !id, s = isNew ? {} : settingsOf(id), doc = isNew ? null : tripDoc(id);
+      // A new trip starts with the open trip's people, but only your own account link comes along:
+      // it isn't shared with anyone until you link them here.
+      const rows = isNew ? party().people.map(({ uid: u, ...p }) => (u === me ? { ...p, uid: u } : { ...p })) : (doc.people || []).map((p) => ({ ...p }));
+      tripDraft = { id, isNew, f: { name: isNew ? "" : doc.name, start: s.start || "", end: s.end || "", budget: isNew ? "" : String(s.budget ?? "") }, rows };
+    }
+    const D = tripDraft, title = D.isNew ? "Start a new trip" : "Edit trip";
+    if (!D.rows.length) D.rows.push({ name: "", rel: "" });
+    const canDelete = !D.isNew && D.id !== tripId && D.id !== "main" && (!account || tripDoc(D.id).owner === me);
+    const root = document.getElementById("sheet-root"), had = root.querySelector(".sheet"), scroll = had ? had.scrollTop : 0;
+    root.innerHTML = `<div class="scrim" data-act="close-sheet"><form class="sheet pinned" data-form="trip-save" role="dialog" aria-modal="true" aria-label="${title}" style="animation:${keep ? "none" : ""}">
+      <div class="sheet-top"><div class="sheet-head"><h2>${title}</h2><div class="row" style="gap:8px;flex-wrap:nowrap">
+        <button type="button" class="btn ghost sm" data-cancel>Cancel</button><button class="btn sm">Save</button></div></div></div>
+      <div class="fields">
+        <div class="field full"><label for="t-name">Trip name</label><input id="t-name" data-t="name" value="${esc(D.f.name)}" placeholder="Spring break 2028" autocomplete="off" required></div>
+        <div class="field"><label for="t-start">Check-in</label><input id="t-start" data-t="start" type="date" value="${esc(D.f.start)}"></div>
+        <div class="field"><label for="t-end">Check-out</label><input id="t-end" data-t="end" type="date" value="${esc(D.f.end)}"></div>
+        <div class="field full"><label for="t-budget">Total budget ($)</label><input id="t-budget" data-t="budget" type="number" inputmode="decimal" step="any" value="${esc(D.f.budget)}"></div>
+      </div>
+      <div><h3>Who's going</h3><div class="muted small">Add each person and how they're related to you.${account ? " Link someone to their account (friends only) and they can see and edit this trip too." : ""}</div></div>
+      <div class="people">${D.rows.map((p, i) => `<div class="person ${account ? "linkable" : ""}">
+        <input data-p="name" data-i="${i}" value="${esc(p.name)}" placeholder="Name" aria-label="Name" autocomplete="off">
+        <input data-p="rel" data-i="${i}" value="${esc(p.rel || "")}" placeholder="Relationship" aria-label="Relationship" list="rel-list" autocomplete="off">
+        ${account ? `<select data-p="uid" data-i="${i}" aria-label="Account">${accountOptions(p.uid).map(([v, l]) => `<option value="${esc(v)}" ${v === (p.uid || "") ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : ""}
+        <button type="button" class="icon-btn" data-act="person-del" data-n="${i}" aria-label="Remove ${esc(p.name || "this person")}">${I.x}</button></div>`).join("")}</div>
+      <datalist id="rel-list">${RELATIONS.map((r) => `<option value="${r}"></option>`).join("")}</datalist>
+      <div><button type="button" class="btn ghost sm" data-act="person-add">${I.plus} Add someone</button></div>
+      ${canDelete ? `<div><button type="button" class="btn quiet" data-act="trip-del">Delete this trip</button></div>` : ""}
+    </form></div>`;
+    const sheet = root.querySelector(".sheet"); sheet.scrollTop = scroll; pinTop(sheet);
+    root.querySelector("[data-cancel]").onclick = closeSheet;
+  }
+  // Who a Who's going row can be linked to: you, your friends, or whoever it's linked to already.
+  function accountOptions(cur) {
+    const opts = [["", "No account"], [me, `${account.user.name} (you)`], ...account.friends.map((f) => [f.id, f.name || "Someone"])];
+    if (cur && !opts.some(([v]) => v === cur)) opts.push([cur, account.people[cur] || "Someone"]);
+    return opts;
+  }
+  function readTrip() {
+    document.querySelectorAll("#sheet-root [data-t]").forEach((el) => (tripDraft.f[el.dataset.t] = el.value.trim()));
+    document.querySelectorAll("#sheet-root [data-p]").forEach((el) => (tripDraft.rows[el.dataset.i][el.dataset.p] = el.value.trim()));
+    return tripDraft;
+  }
+  function saveTrip() {
+    const D = readTrip();
+    if (!D.f.name) { document.getElementById("t-name").focus(); return; }
+    const people = D.rows.filter((p) => p.name).map((p) => ({ name: p.name, rel: p.rel || "", ...(p.uid ? { uid: p.uid } : {}) }));
+    const v = { start: D.f.start, end: D.f.end, budget: D.f.budget === "" ? 0 : Number(D.f.budget) || 0 };
+    closeSheet();
+    if (D.isNew) {
+      const id = "t" + Date.now().toString(36);
+      put("trips", id, { name: D.f.name, people, created: new Date().toISOString() });
+      switchTrip(id);
+      setSettings({ ...v, adults: people.length, kids: 0 });
+      view.tab = "home"; store.set(LS_KEY + ":tab", "home"); render(); window.scrollTo({ top: 0 });
+      toast(`${D.f.name} is open.`);
+      return;
+    }
+    const id = D.id;
+    put("trips", id, { ...tripDoc(id), name: D.f.name, people });
+    if (id === tripId) return setSettings(v);
+    const next = { ...settingsOf(id), ...v };
+    if (mode === "local") { const p = phys("trip", id); local[p] = { ...(local[p] || {}), settings: next }; saveLocal(); render(); }
+    else { otherSettings[id] = next; render(); db.collection(phys("trip", id)).doc("settings").set(next).catch(writeFailed); }
+  }
+  // On the website the Worker deletes everything in the trip along with it.
+  function deleteTrip(id) {
+    remove("trips", id);
+    if (mode === "local") { TRIP_COLLS.forEach((c) => delete local[phys(c, id)]); saveLocal(); }
+    toast("Trip deleted.");
   }
 
   // ---------- My Trips: every trip, which one is open, and who's going ----------
@@ -1723,70 +1786,12 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
           ${on ? `<span class="pill good">Open now</span>` : `<button class="btn sm" data-act="open-trip" data-id="${id}">Open</button>`}</div>
         <div class="row" style="gap:6px">${p.people.length ? p.people.map((x) => `<span class="pill plain">${esc(x.name)}${x.rel ? ` · ${esc(x.rel)}` : ""}</span>`).join("")
           : `<span class="muted small">${p.count ? `${p.count} going` : "No one added yet"}</span>`}</div>
-        ${canWrite ? `<div class="row" style="gap:8px"><button class="btn ghost sm" data-act="edit-people" data-id="${id}">Who's going</button><button class="btn quiet sm" data-act="edit-trip" data-id="${id}">${I.pencil} Edit</button></div>` : ""}
+        ${canWrite ? `<div><button class="btn ghost sm" data-act="edit-trip" data-id="${id}">${I.pencil} Edit</button></div>` : ""}
       </section>`;
     };
     return `<div class="row between"><h2>My Trips</h2>${canWrite ? `<button class="btn sm" data-act="add-trip">${I.plus} New trip</button>` : art("luggage", 40)}</div>
       <div class="muted">Each trip has its own resorts, budget, plan, dreams, food and to-dos. Tap Open to switch; this phone remembers which one is open.</div>
       ${ids.map(card).join("")}`;
-  }
-  function newTrip() {
-    openSheet("Start a new trip", [
-      { k: "name", label: "Trip name", full: true, placeholder: "Spring break 2028" },
-      { k: "start", label: "Check-in", type: "date" }, { k: "end", label: "Check-out", type: "date" },
-      { k: "budget", label: "Total budget ($)", type: "number", full: true },
-    ], { budget: "" }, (v) => {
-      // Starts with the same people as the trip that's open, but only your own account link comes along: a new trip
-      // isn't shared with anyone until you link them on "Who's going", which opens next.
-      const was = party(), id = "t" + Date.now().toString(36);
-      put("trips", id, { name: v.name, people: was.people.map(({ uid: u, ...p }) => (u === me ? { ...p, uid: u } : p)), created: new Date().toISOString() });
-      switchTrip(id);
-      setSettings({ start: v.start, end: v.end, budget: v.budget, adults: was.count, kids: 0 });
-      view.tab = "home"; store.set(LS_KEY + ":tab", "home"); render(); window.scrollTo({ top: 0 });
-      setTimeout(() => editPeople(id), 0);
-    });
-  }
-  // On the website the Worker deletes everything in the trip along with it.
-  function deleteTrip(id) {
-    remove("trips", id);
-    if (mode === "local") { TRIP_COLLS.forEach((c) => delete local[phys(c, id)]); saveLocal(); }
-    toast("Trip deleted.");
-  }
-  // Who's going: a name and a relationship, one row each. Nothing saves until Done.
-  let peopleDraft = null;
-  function editPeople(id, rows) {
-    const doc = tripDoc(id);
-    peopleDraft = { id, rows: rows || (doc.people || []).map((p) => ({ ...p })) };
-    if (!peopleDraft.rows.length) peopleDraft.rows.push({ name: "", rel: "" });
-    const root = document.getElementById("sheet-root"), keep = root.querySelector(".sheet");
-    root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet pinned" role="dialog" aria-modal="true" aria-label="Who's going" style="animation:${keep ? "none" : ""}">
-      <div class="sheet-top"><div class="sheet-head"><div><h2>Who's going</h2><div class="muted small">${esc(doc.name)}</div></div><div class="row" style="gap:8px;flex-wrap:nowrap">
-        <button type="button" class="btn ghost sm" data-cancel>Cancel</button><button type="button" class="btn sm" data-act="people-save">Done</button></div></div></div>
-      <div class="muted small">Add each person and how they're related to you.${account ? " Link someone to their account (friends only) and they can see and edit this trip too." : ""}</div>
-      <div class="people">${peopleDraft.rows.map((p, i) => `<div class="person ${account ? "linkable" : ""}">
-        <input data-p="name" data-i="${i}" value="${esc(p.name)}" placeholder="Name" aria-label="Name" autocomplete="off">
-        <input data-p="rel" data-i="${i}" value="${esc(p.rel || "")}" placeholder="Relationship" aria-label="Relationship" list="rel-list" autocomplete="off">
-        ${account ? `<select data-p="uid" data-i="${i}" aria-label="Account">${accountOptions(p.uid).map(([v, l]) => `<option value="${esc(v)}" ${v === (p.uid || "") ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : ""}
-        <button type="button" class="icon-btn" data-act="person-del" data-n="${i}" aria-label="Remove ${esc(p.name || "this person")}">${I.x}</button></div>`).join("")}</div>
-      <datalist id="rel-list">${RELATIONS.map((r) => `<option value="${r}"></option>`).join("")}</datalist>
-      <div><button type="button" class="btn ghost sm" data-act="person-add">${I.plus} Add someone</button></div></div></div>`;
-    pinTop(root.querySelector(".sheet"));
-    root.querySelector("[data-cancel]").onclick = closeSheet;
-  }
-  // Who a Who's going row can be linked to: you, your friends, or whoever it's linked to already.
-  function accountOptions(cur) {
-    const opts = [["", "No account"], [me, `${account.user.name} (you)`], ...account.friends.map((f) => [f.id, f.name || "Someone"])];
-    if (cur && !opts.some(([v]) => v === cur)) opts.push([cur, account.people[cur] || "Someone"]);
-    return opts;
-  }
-  function readPeople() {
-    document.querySelectorAll("#sheet-root [data-p]").forEach((el) => (peopleDraft.rows[el.dataset.i][el.dataset.p] = el.value.trim()));
-    return peopleDraft.rows;
-  }
-  function savePeople() {
-    const people = readPeople().filter((p) => p.name).map((p) => ({ name: p.name, rel: p.rel || "", ...(p.uid ? { uid: p.uid } : {}) }));
-    put("trips", peopleDraft.id, { ...tripDoc(peopleDraft.id), people });
-    closeSheet();
   }
   function editWish(id) {
     const cur = id ? state.wishes[id] : { park: PARKS[0], hearts: [me], done: false };
@@ -1891,13 +1896,15 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "toggle") { const c = el.dataset.c, cur = state[c][id]; put(c, id, { ...cur, done: !cur.done }); return; }
     if (act === "pick") { const r = state.resorts[id]; setSettings({ pickId: id, start: r.start || settings().start, end: r.end || settings().end }); toast(`${r.name} is our pick!`); return; }
     if (act === "unpick") { setSettings({ pickId: "" }); return; }
-    if (act === "edit-trip") return editTrip(id);
-    if (act === "add-trip") return newTrip();
     // Fresh friends first, so someone who just added your code is in the account picker.
-    if (act === "edit-people") return account ? refreshAccount().finally(() => editPeople(id)) : editPeople(id);
-    if (act === "person-add") { const rows = readPeople(); editPeople(peopleDraft.id, [...rows, { name: "", rel: "" }]); const ins = document.querySelectorAll('#sheet-root [data-p="name"]'); ins[ins.length - 1].focus(); return; }
-    if (act === "person-del") { const rows = readPeople(); rows.splice(Number(el.dataset.n), 1); editPeople(peopleDraft.id, rows); return; }
-    if (act === "people-save") return savePeople();
+    if (act === "edit-trip") return account ? refreshAccount().finally(() => editTrip(id)) : editTrip(id);
+    if (act === "add-trip") return account ? refreshAccount().finally(() => editTrip(null)) : editTrip(null);
+    if (act === "person-add") { readTrip().rows.push({ name: "", rel: "" }); editTrip(tripDraft.id, true); const ins = document.querySelectorAll('#sheet-root [data-p="name"]'); ins[ins.length - 1].focus(); return; }
+    if (act === "person-del") { readTrip().rows.splice(Number(el.dataset.n), 1); editTrip(tripDraft.id, true); return; }
+    if (act === "trip-del") {
+      if (!el.dataset.armed) { el.dataset.armed = "1"; el.textContent = "Tap again to delete this trip"; el.style.color = "var(--bad)"; return; }
+      deleteTrip(tripDraft.id); closeSheet(); return;
+    }
     if (act === "add-resort" || act === "edit-resort") return editResort(id);
     if (act === "add-wish" || act === "edit-wish") return editWish(id);
     if (act === "add-food" || act === "edit-food") return editFood(id);
@@ -1913,6 +1920,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const form = e.target.dataset && e.target.dataset.form; if (!form) return;
     e.preventDefault();
     if (form.startsWith("auth-")) return authSubmit(form);
+    if (form === "trip-save") return saveTrip();
     if (form === "friend-add") apiCall("/api/friends/add", "POST", { code: document.getElementById("friend-code").value })
       .then((res) => { setAccount(res); toast(`You and ${res.friend.name || "your friend"} are friends now!`); }, (err) => toast(err.message));
     if (form === "me-name") apiCall("/api/me", "PUT", { name: document.getElementById("me-name").value.trim() })
