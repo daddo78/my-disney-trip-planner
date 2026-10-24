@@ -322,7 +322,10 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
 .signin .hero { text-align: left; }
 .auth-err { color: var(--bad); font-weight: 700; }
 .code-input { font-size: 1.6rem !important; letter-spacing: 8px; text-align: center; font-variant-numeric: tabular-nums; }
-.friend-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-weight: 800; }
+.friend { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.friend:last-child { border-bottom: 0; }
+.friend .avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 1.25rem; }
+.friend b { font-size: 1.05rem; }
 .fcode-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .fcode { background: var(--surface-2); border-radius: 14px; padding: 10px 18px; font-family: "Fredoka", sans-serif; font-weight: 700; font-size: 1.9rem; letter-spacing: .35em; padding-right: calc(18px - .35em); color: var(--ink); font-variant-numeric: tabular-nums; }
 .add-friend { display: flex; gap: 8px; align-items: flex-end; }
@@ -493,12 +496,15 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   const CAL = I.cal.replace("<svg", '<svg class="cal" aria-hidden="true"');
   const art = (name, size) => `<img class="art" src="icons/parks/${name}.svg" alt=""${size ? ` width="${size}" height="${size}"` : ""}>`;
   const TABS = [["home", "Home", "castle"], ["resorts", "Resorts", "resort"], ["dates", "Compare", "gold-star"], ["plan", "Plan", "outpost"], ["budget", "Budget", "shopping-bag"],
-    ["dreams", "Dreams", "sorcerer-hat"], ["food", "Food", "pretzel"], ["todo", "To-do", "bell"], ["news", "News", "tv-tower"], ["trips", "My Trips", "luggage"]];
+    ["dreams", "Dreams", "sorcerer-hat"], ["food", "Food", "pretzel"], ["todo", "To-do", "bell"], ["news", "News", "tv-tower"], ["trips", "My Trips", "luggage"],
+    ["friends", "Friends", "mickey-minnie"]];
+  // Friends needs an account, so it only shows on the website.
+  const tabOn = (k) => k !== "friends" || !!account;
   // Five tabs fit in the bar; the rest live behind "More". Each phone keeps its own order (Home stays first).
   const BAR = 5;
   function navOrder() {
     let saved = []; try { saved = JSON.parse(store.get(LS_KEY + ":nav") || "[]"); } catch {}
-    const keys = TABS.map((t) => t[0]);
+    const keys = TABS.map((t) => t[0]).filter(tabOn);
     const order = ["home", ...saved.filter((k) => k !== "home" && keys.includes(k))];
     keys.forEach((k) => { if (!order.includes(k)) order.push(k); });
     return order;
@@ -747,7 +753,37 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     A.busy = false; render();
     const first = document.querySelector("#app form input"); if (first) first.focus();
   }
-  // Your account: name, your friend code, add a friend by their code, friends, sign out.
+  // ---------- Friends tab: your code, add a friend by theirs, and each friend with how you know them and your trips together ----------
+  // Trips together = the trips you're on (you only see those) that they started or are linked on Who's going.
+  const tripsWith = (fid) => tripIds().filter((t) => { const d = tripDoc(t); return d.owner === fid || (d.people || []).some((p) => p.uid === fid); });
+  function friendsView() {
+    const u = account.user;
+    const card = (f) => {
+      const trips = tripsWith(f.id), n = trips.length;
+      return `<div class="friend"><span class="avatar" aria-hidden="true">${esc((f.name || "?").slice(0, 1).toUpperCase())}</span>
+        <div><div class="row" style="gap:8px"><b>${esc(f.name || "Someone")}</b>${f.rel ? `<span class="pill plain">${esc(f.rel)}</span>` : ""}</div>
+          <div class="muted small">${n ? `${n} trip${n === 1 ? "" : "s"} together · ${trips.map((t) => esc(tripDoc(t).name)).join(", ")}` : "No trips together yet"}</div></div>
+        <button class="icon-btn" data-act="friend-edit" data-id="${esc(f.id)}" aria-label="Edit ${esc(f.name || "friend")}">${I.pencil}</button></div>`;
+    };
+    return `<div class="row between"><h2>Friends</h2>${art("mickey-minnie", 40)}</div>
+      <div class="muted">Give your friend code to a friend, or type in theirs. Once you're friends, you can add each other to a trip under Who's going.</div>
+      <section class="card stack">
+        <div><div class="eyebrow">Your friend code</div>
+          <div class="fcode-row"><span class="fcode" aria-label="${esc(u.code.split("").join(" "))}">${esc(u.code)}</span><button type="button" class="btn quiet sm" data-act="friend-copy">${I.copy} Copy</button></div></div>
+        <form class="add-friend" data-form="friend-add"><div class="field"><label for="friend-code">Add a friend</label><input id="friend-code" placeholder="Their code" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" required></div><button class="btn sm">Add</button></form>
+      </section>
+      <section class="card">${account.friends.length ? `<div class="eyebrow">${account.friends.length} friend${account.friends.length === 1 ? "" : "s"}</div>${account.friends.map(card).join("")}`
+        : `<div class="empty"><h3>No friends yet</h3><div>Share your code to add some!</div></div>`}</section>
+      <div><button type="button" class="btn quiet sm" data-act="friend-new">Get a new friend code</button></div>`;
+  }
+  // How you know a friend (only you see it), or remove them.
+  function editFriend(fid) {
+    const f = account.friends.find((x) => x.id === fid); if (!f) return;
+    openSheet(f.name || "Friend", [{ k: "rel", label: "How do you know them?", full: true, list: RELATIONS, placeholder: "Sister, college roommate, neighbor…", optional: true }], { rel: f.rel || "" },
+      (v) => apiCall(`/api/friends/${encodeURIComponent(fid)}`, "PUT", { rel: v.rel }).then(setAccount, (err) => toast(err.message)),
+      () => apiCall(`/api/friends/${encodeURIComponent(fid)}`, "DELETE").then((a) => { setAccount(a); toast(`${f.name || "They"} won't be on your friends list anymore.`); }, (err) => toast(err.message)));
+  }
+  // Your account: name and sign out. Friends have their own tab.
   function showAccount() {
     const u = account.user;
     const root = document.getElementById("sheet-root"), keep = root.querySelector(".sheet");
@@ -755,14 +791,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       <div class="sheet-top"><div class="sheet-head"><div><h2>${esc(u.name)}</h2><div class="muted small">${esc(u.email)}</div></div>
         <button type="button" class="icon-btn" data-close aria-label="Close">${I.x}</button></div></div>
       <form class="row" data-form="me-name" style="flex-wrap:nowrap"><div class="field" style="flex:1"><label for="me-name">Your name</label><input id="me-name" value="${esc(u.name)}" maxlength="40" required></div><button class="btn sm" style="align-self:flex-end">Save</button></form>
-      <h3>Friends</h3>
-      <div class="muted small">Give your friend code to a friend, or type in theirs. Once you're friends, you can add each other to a trip under Who's going.</div>
-      <div><div class="eyebrow">Your friend code</div>
-        <div class="fcode-row"><span class="fcode" aria-label="${esc(u.code.split("").join(" "))}">${esc(u.code)}</span><button type="button" class="btn quiet sm" data-act="friend-copy">${I.copy} Copy</button></div></div>
-      <form class="add-friend" data-form="friend-add"><div class="field"><label for="friend-code">Add a friend</label><input id="friend-code" placeholder="Their code" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" required></div><button class="btn sm">Add</button></form>
-      <div>${account.friends.length ? account.friends.map((f) => `<div class="friend-row"><span>${esc(f.name || "Someone")}</span><button type="button" class="btn quiet sm" data-act="friend-del" data-id="${esc(f.id)}">Remove</button></div>`).join("")
-        : `<div class="muted">No friends yet. Share your code to add some!</div>`}</div>
-      <div><button type="button" class="btn quiet sm" data-act="friend-new">Get a new friend code</button></div>
+      <div class="row between"><span class="muted">${account.friends.length} friend${account.friends.length === 1 ? "" : "s"}</span><button type="button" class="btn ghost sm" data-act="tab" data-k="friends">${art("mickey-minnie", 20)} Friends</button></div>
       <div><button type="button" class="btn ghost" data-act="signout">Sign out</button></div></div></div>`;
     pinTop(root.querySelector(".sheet"));
     root.querySelector("[data-close]").onclick = closeSheet;
@@ -1005,12 +1034,14 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       <div class="top-right"><span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span>
       <button class="theme-btn" data-act="theme" aria-label="${isDark() ? "Switch to light mode" : "Switch to dark mode"}">${isDark() ? I.sun.replace(/14/g, "18") : I.moon}</button>
       ${account ? `<button class="me-btn" data-act="account" aria-label="Your account">${esc((account.user.name || "?").slice(0, 1).toUpperCase())}</button>` : ""}</div></div>`;
-    const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, food: foodView, todo: todoView, plan: planView, news: newsView, trips: tripsView }[view.tab]();
+    if (!tabOn(view.tab)) view.tab = "home";
+    const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, food: foodView, todo: todoView, plan: planView, news: newsView, trips: tripsView, friends: friendsView }[view.tab]();
     document.title = tripDoc().name;
     // Keep a half-typed pro/con or budget amount when a live update re-renders the page.
     const ae = document.activeElement, ds = ae && ae.dataset ? ae.dataset : {};
     const typing = ds.pcInput ? { sel: `[data-pc-input="${ds.pcInput}"]`, value: ae.value, keepEmpty: false }
-      : ds.item ? { sel: `[data-item="${ds.item}"]`, value: ae.value, keepEmpty: true } : null;
+      : ds.item ? { sel: `[data-item="${ds.item}"]`, value: ae.value, keepEmpty: true }
+      : ae && ae.id === "friend-code" ? { sel: "#friend-code", value: ae.value, keepEmpty: false } : null;
     app.innerHTML = top + body;
     if (typing && (typing.value || typing.keepEmpty)) { const el = app.querySelector(typing.sel); if (el) { el.value = typing.value; el.focus(); } }
   }
@@ -1604,7 +1635,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
         const el = document.getElementById("f-" + f.k);
         out[f.k] = f.type === "check" ? el.checked : f.type === "number" ? (el.value === "" ? (f.nullable ? null : 0) : Number(el.value)) : el.value.trim();
       });
-      if (fields[0] && !out[fields[0].k] && fields[0].type !== "check" && fields[0].type !== "select") { document.getElementById("f-" + fields[0].k).focus(); return; }
+      if (fields[0] && !out[fields[0].k] && fields[0].type !== "check" && fields[0].type !== "select" && !fields[0].optional) { document.getElementById("f-" + fields[0].k).focus(); return; }
       onSave(out); closeSheet();
     });
     form.querySelector("[data-cancel]").onclick = closeSheet;
@@ -1819,11 +1850,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "auth-resend") { apiCall("/api/auth/start", "POST", { email: view.auth.email }).then(() => toast("New code sent."), (err) => toast(err.message)); return; }
     if (act === "account") { showAccount(); return; }
     if (act === "friend-copy") { copyFriendCode(); return; }
-    if (act === "friend-new") { apiCall("/api/friends/code", "POST").then((a) => { setAccount(a); showAccount(); toast("New friend code made. The old one won't work anymore."); }, (err) => toast(err.message)); return; }
-    if (act === "friend-del") {
-      if (!el.dataset.armed) { el.dataset.armed = "1"; el.textContent = "Tap again to remove"; el.style.color = "var(--bad)"; return; }
-      apiCall(`/api/friends/${encodeURIComponent(id)}`, "DELETE").then((a) => { setAccount(a); showAccount(); }, (err) => toast(err.message)); return;
-    }
+    if (act === "friend-new") { apiCall("/api/friends/code", "POST").then((a) => { setAccount(a); toast("New friend code made. The old one won't work anymore."); }, (err) => toast(err.message)); return; }
+    if (act === "friend-edit") { editFriend(id); return; }
     if (act === "signout") { apiCall("/api/auth/signout", "POST").finally(() => location.reload()); return; }
     if (act === "cmp-toggle") {
       // Up to three at a time; adding a fourth drops the oldest.
@@ -1882,7 +1910,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     e.preventDefault();
     if (form.startsWith("auth-")) return authSubmit(form);
     if (form === "friend-add") apiCall("/api/friends/add", "POST", { code: document.getElementById("friend-code").value })
-      .then((res) => { setAccount(res); showAccount(); toast(`You and ${res.friend.name || "your friend"} are friends now!`); }, (err) => toast(err.message));
+      .then((res) => { setAccount(res); toast(`You and ${res.friend.name || "your friend"} are friends now!`); }, (err) => toast(err.message));
     if (form === "me-name") apiCall("/api/me", "PUT", { name: document.getElementById("me-name").value.trim() })
       .then((a) => { setAccount(a); showAccount(); toast("Saved."); }, (err) => toast(err.message));
   });
@@ -1890,10 +1918,12 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const el = e.target;
     if (el.id === "sort") { view.sort = el.value; render(); return; }
     if (el.dataset.item && canWrite) { setItemAmount(el.dataset.item, el.value.trim()); return; }
-    // Linking a blank Who's going row to a friend fills in their name.
+    // Linking a blank Who's going row to a friend fills in their name, and how you know them.
     if (el.dataset.p === "uid" && el.value) {
-      const name = document.querySelector(`#sheet-root [data-p="name"][data-i="${el.dataset.i}"]`);
-      if (name && !name.value.trim()) name.value = el.value === me ? account.user.name : (account.friends.find((f) => f.id === el.value) || {}).name || "";
+      const row = (p) => document.querySelector(`#sheet-root [data-p="${p}"][data-i="${el.dataset.i}"]`), name = row("name"), rel = row("rel");
+      const f = account.friends.find((x) => x.id === el.value) || {};
+      if (name && !name.value.trim()) name.value = el.value === me ? account.user.name : f.name || "";
+      if (rel && !rel.value.trim()) rel.value = el.value === me ? "Me" : f.rel || "";
     }
   });
   document.addEventListener("keydown", (e) => {

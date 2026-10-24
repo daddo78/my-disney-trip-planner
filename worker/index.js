@@ -11,6 +11,7 @@
 //   PUT    /api/me {name}
 //   POST   /api/friends/code               a new friend code (the old one stops working)
 //   POST   /api/friends/add {code}         become friends with the code's owner
+//   PUT    /api/friends/<id> {rel}         how you know that friend (only you see it)
 //   DELETE /api/friends/<id>
 //   GET    /api/docs?since=<n>             docs I can see changed after cursor n (0 = everything), the new cursor, my trip ids
 //   PUT    /api/docs/<coll>/<id>           save a doc in one of my trips
@@ -137,7 +138,7 @@ async function newCode(db, uid) {
 }
 async function meInfo(db, user) {
   if (!FRIEND_CODE.test(user.code || "")) user = { ...user, code: await newCode(db, user.id) };
-  const friends = (await db.prepare("SELECT u.id, u.name FROM friends f JOIN users u ON u.id = f.b WHERE f.a = ?1 ORDER BY u.name").bind(user.id).all()).results;
+  const friends = (await db.prepare("SELECT u.id, u.name, f.rel FROM friends f JOIN users u ON u.id = f.b WHERE f.a = ?1 ORDER BY u.name").bind(user.id).all()).results;
   // Names for hearts, pros and cons, and Who's going: everyone on my trips, plus my friends.
   const others = (await db.prepare(`SELECT DISTINCT u.id, u.name FROM members m JOIN members o ON o.trip = m.trip JOIN users u ON u.id = o.user_id WHERE m.user_id = ?1`).bind(user.id).all()).results;
   const people = {}; [...others, ...friends].forEach((p) => (people[p.id] = p.name || "Someone"));
@@ -172,6 +173,11 @@ async function account(request, env, path, user) {
     return json({ friend: them, ...(await meInfo(db, user)) });
   }
   const f = path.match(/^\/api\/friends\/([a-z0-9]{1,40})$/);
+  if (f && request.method === "PUT") {
+    const rel = String((await body(request)).rel || "").trim().replace(/\s+/g, " ").slice(0, 40);
+    await db.prepare("UPDATE friends SET rel = ?1 WHERE a = ?2 AND b = ?3").bind(rel, user.id, f[1]).run();
+    return json(await meInfo(db, user));
+  }
   if (f && request.method === "DELETE") {
     await db.prepare("DELETE FROM friends WHERE (a = ?1 AND b = ?2) OR (a = ?2 AND b = ?1)").bind(user.id, f[1]).run();
     return json(await meInfo(db, user));

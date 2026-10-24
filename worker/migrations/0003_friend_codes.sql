@@ -7,3 +7,5 @@ CREATE TABLE IF NOT EXISTS friend_tries (
   since INTEGER NOT NULL,
   count INTEGER NOT NULL
 );
+-- How you know each friend ("Sister", "College roommate"), set by you on the Friends tab; each side keeps its own.
+ALTER TABLE friends ADD COLUMN rel TEXT NOT NULL DEFAULT '';
