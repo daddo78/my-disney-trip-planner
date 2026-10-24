@@ -312,9 +312,18 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
 .sheet .grab { width: 44px; height: 5px; border-radius: 3px; background: var(--line); justify-self: center; }
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .people { display: grid; gap: 8px; }
-.person { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "name del" "rel ."; gap: 8px; align-items: center; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
-.person [data-p="name"] { grid-area: name; } .person [data-p="rel"] { grid-area: rel; } .person .icon-btn { grid-area: del; }
-.person input { width: 100%; min-width: 0; border: 2px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+.person { display: grid; grid-template-columns: 1fr 1fr auto; grid-template-areas: "name name del" "rel rel ."; gap: 8px; align-items: center; padding-bottom: 10px; border-bottom: 1px dashed var(--line); }
+.person.linkable { grid-template-areas: "name name del" "rel uid ."; }
+.person [data-p="name"] { grid-area: name; } .person [data-p="rel"] { grid-area: rel; } .person [data-p="uid"] { grid-area: uid; } .person .icon-btn { grid-area: del; }
+.person input, .person select { width: 100%; min-width: 0; border: 2px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+.person select[data-p="uid"] { font-size: .9rem; }
+.me-btn { border: 0; background: var(--accent); color: var(--on-accent); width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; padding: 0; font-weight: 800; font-size: 1.05rem; }
+.signin { max-width: 440px; margin: 0 auto; width: 100%; }
+.signin .hero { text-align: left; }
+.auth-err { color: var(--bad); font-weight: 700; }
+.code-input { font-size: 1.6rem !important; letter-spacing: 8px; text-align: center; font-variant-numeric: tabular-nums; }
+.friend-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-weight: 800; }
+.linkbox { width: 100%; border: 2px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 8px 10px; font-size: .8rem; color: var(--muted); }
 .trip-card.on { box-shadow: 0 0 0 3px var(--accent), var(--shadow); }
 .hero .who { margin-top: 6px; font-weight: 800; }
 .field { display: grid; gap: 4px; min-width: 0; }
@@ -431,14 +440,17 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   const today = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
   const entries = (c) => Object.entries(state[c]).map(([id, v]) => ({ id, ...v }));
-  const settings = () => ({ ...DEFAULTS, ...(state.trip.settings || {}) });
+  // Our own 2027 dates and budget fill in only on this device; on the website a trip without settings has none.
+  const baseSettings = () => (account ? { ...DEFAULTS, start: "", end: "", budget: 0 } : DEFAULTS);
+  const settings = () => ({ ...baseSettings(), ...(state.trip.settings || {}) });
   const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
   // Which trip this phone has open (each phone keeps its own).
   let tripId = store.get(LS_KEY + ":trip") || "main";
   const phys = (c, t = tripId) => (TRIP_COLLS.includes(c) && t !== "main" ? `${c}@${t}` : c);
-  const tripIds = () => ["main", ...Object.keys(state.trips).filter((k) => k !== "main")];
+  // On the website you only see the trips you're on; on this device there's always the first trip.
+  const tripIds = () => (mode === "shared" && account ? Object.keys(state.trips) : ["main", ...Object.keys(state.trips).filter((k) => k !== "main")]);
   const tripDoc = (id = tripId) => ({ name: id === "main" ? "Our Disney Trip" : "New trip", people: [], ...(state.trips[id] || {}) });
-  const settingsOf = (id) => (id === tripId ? settings() : { ...DEFAULTS, ...tripSettings(id) });
+  const settingsOf = (id) => (id === tripId ? settings() : { ...baseSettings(), ...tripSettings(id) });
   // Who's going. No adult/kid split on purpose: Disney tickets count 10+ as adults, resorts 18+, so a head count is all we show.
   // Without a list, the old adults + kids counts in the settings.
   function party(id = tripId) {
@@ -525,6 +537,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   }
   function writeFailed(e) {
     if (e && e.code === "invalid_argument" && canWrite !== false) { canWrite = false; render(); toast("You can look but not edit. Ask for Contributor access to make changes."); return; }
+    if (e && e.code === "signed_out") return location.reload();
+    if (e && e.code === "forbidden") return toast(e.message || "That trip isn't shared with you.");
     if (e && e.code === "quota_exceeded") return toast("Storage is full. Delete a few old items and try again.");
     toast("That change didn't save. Check your connection and try again.");
   }
@@ -546,11 +560,13 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const tab = (location.hash || "").slice(1) || store.get(LS_KEY + ":tab");
     if (TABS.some((t) => t[0] === tab)) view.tab = tab;
     if (!window.claude || !window.claude.use) {
-      const site = /^https?:$/.test(location.protocol) ? await siteDb() : null;
-      if (!site) return loadLocal();
-      db = site; mode = "shared";
-      pickMe();
-      return subscribe();
+      // On the website you sign in; opened as a file (or anywhere without the Worker) it saves on the device.
+      if (!/^https?:$/.test(location.protocol)) return loadLocal();
+      catchFriendLink();
+      let r; try { r = await fetch("/api/me", { cache: "no-store" }); } catch { return loadLocal(); }
+      if (r.status === 401) return showSignIn();
+      if (!r.ok) return loadLocal();
+      return startShared(await r.json());
     }
     render();
     const [d, u] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
@@ -573,7 +589,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
   function subscribe() {
     COLLS.filter((c) => !TRIP_COLLS.includes(c)).forEach((c) => listen(c, tripId, (m) => {
       state[c] = m;
-      if (c === "trips") { watchTrips(); if (tripId !== "main" && !m[tripId]) return switchTrip("main"); }
+      if (c === "trips") { watchTrips(); if (!m[tripId] && (mode === "shared" || tripId !== "main")) { const next = tripIds()[0]; if (next && next !== tripId) return switchTrip(next); } }
       render(); resolveNames();
     }));
     subscribeTrip();
@@ -607,11 +623,12 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
 
   // On dtp.ondorilabo.com the Worker keeps the shared plan (worker/index.js); this gives it the same
   // interface as the artifact's db. It checks for changes every 5 seconds while the page is open.
+  // Only the trips you're on come down; when that list changes (someone added or removed you), it starts over from scratch.
   async function siteDb() {
     let first;
     try { const r = await fetch("/api/docs?since=0", { cache: "no-store" }); if (!r.ok) return null; first = await r.json(); } catch { return null; }
-    const cache = {}, subs = {};
-    let cursor = 0, polling = false;
+    let cache = {}, cursor = 0, polling = false, access = (first.trips || []).join(",");
+    const subs = {};
     const snap = (c) => ({ docs: Object.entries(cache[c] || {}).map(([id, d]) => ({ id, data: () => d })) });
     const emit = (c) => (subs[c] || []).forEach((cb) => cb(snap(c)));
     const apply = (res) => {
@@ -623,14 +640,27 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     apply(first);
     async function poll() {
       if (polling) return; polling = true;
-      try { const r = await fetch(`/api/docs?since=${cursor}`, { cache: "no-store" }); if (r.ok) apply(await r.json()).forEach(emit); } catch {} finally { polling = false; }
+      try {
+        const r = await fetch(`/api/docs?since=${cursor}`, { cache: "no-store" });
+        if (r.status === 401) return location.reload();
+        if (!r.ok) return;
+        const res = await r.json();
+        if ((res.trips || []).join(",") === access) return apply(res).forEach(emit);
+        const all = await (await fetch("/api/docs?since=0", { cache: "no-store" })).json();
+        access = (all.trips || []).join(","); cache = {}; cursor = 0; apply(all);
+        Object.keys(subs).forEach(emit);
+        refreshAccount();
+      } catch {} finally { polling = false; }
     }
     setInterval(() => { if (document.visibilityState === "visible") poll(); }, 5000);
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") poll(); });
     async function send(c, id, init, local) {
       const m = (cache[c] = cache[c] || {}); if (local === undefined) delete m[id]; else m[id] = local;
-      const r = await fetch(`/api/docs/${encodeURIComponent(c)}/${encodeURIComponent(id)}`, init);
-      if (!r.ok) throw Object.assign(new Error("Save failed"), { code: r.status === 413 ? "quota_exceeded" : "unavailable" });
+      const r = await fetch(`/api/docs/${encodeURIComponent(c)}/${encodeURIComponent(id)}`, { ...init, headers: { ...(init.headers || {}), "x-dtp": "1" } });
+      if (!r.ok) {
+        const msg = (await r.json().catch(() => ({}))).error;
+        throw Object.assign(new Error(msg || "Save failed"), { code: { 413: "quota_exceeded", 401: "signed_out", 403: "forbidden" }[r.status] || "unavailable" });
+      }
       poll();
     }
     return {
@@ -644,14 +674,111 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     };
   }
 
-  // The website has no sign-in, so each phone says once who is using it (for hearts and pros & cons).
-  const PEOPLE = { dan: "Dan", brittany: "Brittany" };
-  function pickMe() {
-    const saved = store.get(LS_KEY + ":me");
-    names = { ...PEOPLE };
-    if (saved && PEOPLE[saved]) { me = saved; names[me] = "You"; return; }
-    openSheet("Who's planning on this phone?", [{ k: "who", label: "This is", type: "select", options: Object.entries(PEOPLE), full: true }], { who: "brittany" },
-      (v) => { me = v.who; store.set(LS_KEY + ":me", me); names = { ...PEOPLE, [me]: "You" }; render(); });
+  // ---------- accounts (website only; see worker/index.js) ----------
+  // Sign in with a code sent by email. `account` is /api/me: {user, friends, people (names by id), trips}.
+  let account = null;
+  async function apiCall(path, method = "GET", data) {
+    const r = await fetch(path, { method, cache: "no-store", headers: method === "GET" ? {} : { "content-type": "application/json", "x-dtp": "1" }, body: data === undefined ? undefined : JSON.stringify(data) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw Object.assign(new Error(j.error || "Something went wrong. Try again."), { status: r.status });
+    return j;
+  }
+  function setAccount(a) {
+    account = a; me = a.user.id;
+    names = { ...a.people, [me]: "You" };
+    render();
+  }
+  async function refreshAccount() { try { setAccount(await apiCall("/api/me")); } catch {} }
+  function showSignIn() {
+    mode = "signin"; view.auth = view.auth || { step: "email", email: "", error: "", busy: false };
+    render();
+  }
+  async function startShared(a) {
+    setAccount(a);
+    if (!a.user.name) { view.auth = { step: "name", email: a.user.email, error: "", busy: false }; return showSignIn(); }
+    mode = "starting"; render();
+    await acceptFriendLink();
+    const site = await siteDb();
+    if (!site) { toast("Couldn't load your trips. Reload to try again."); return; }
+    db = site; mode = "shared";
+    subscribe();
+    // Someone brand new gets a first trip with them on it, and the trip details open to name it.
+    if (!account.trips.length && !Object.keys(state.trips).length) {
+      const id = "t" + Date.now().toString(36);
+      put("trips", id, { name: "Our Disney Trip", people: [{ name: account.user.name, rel: "Me", uid: me }], created: new Date().toISOString() });
+      switchTrip(id);
+      put("trip", "settings", { ...baseSettings(), adults: 1, kids: 0 });
+      view.tab = "home"; render();
+      setTimeout(() => editTrip(id), 0);
+    }
+  }
+  // A friend link is /#friend=<token>. It's kept until you're signed in, then accepted.
+  function catchFriendLink() {
+    const m = location.hash.match(/^#friend=([a-f0-9]{24})$/);
+    if (!m) return;
+    store.set(LS_KEY + ":friend", m[1]);
+    history.replaceState(null, "", location.pathname);
+  }
+  async function acceptFriendLink() {
+    const link = store.get(LS_KEY + ":friend"); if (!link) return;
+    store.set(LS_KEY + ":friend", "");
+    try { const res = await apiCall("/api/friends/accept", "POST", { link }); setAccount(res); toast(`You and ${res.friend.name || "your friend"} are friends now!`); }
+    catch (e) { toast(e.message); }
+  }
+  function signInView() {
+    const A = view.auth, err = A.error ? `<div class="auth-err" role="alert">${esc(A.error)}</div>` : "";
+    const busy = A.busy ? "disabled" : "";
+    const step = A.step === "code" ? `<form class="card stack" data-form="auth-code">
+        <h2>Check your email</h2><div class="muted">We sent a 6-digit code to <b>${esc(A.email)}</b>. It works for 10 minutes.</div>
+        <div class="field"><label for="a-code">Code</label><input id="a-code" class="code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" required></div>
+        ${err}<button class="btn" ${busy}>${A.busy ? "Checking…" : "Sign in"}</button>
+        <div class="row" style="gap:8px"><button type="button" class="btn quiet sm" data-act="auth-resend" ${busy}>Send a new code</button><button type="button" class="btn quiet sm" data-act="auth-back" ${busy}>Use a different email</button></div></form>`
+      : A.step === "name" ? `<form class="card stack" data-form="auth-name">
+        <h2>Welcome!</h2><div class="muted">What should we call you? Friends see this name on trips, hearts and pros and cons.</div>
+        <div class="field"><label for="a-name">Your name</label><input id="a-name" autocomplete="given-name" maxlength="40" required></div>
+        ${err}<button class="btn" ${busy}>Let's go</button></form>`
+      : `<form class="card stack" data-form="auth-email">
+        <h2>Sign in or sign up</h2><div class="muted">Type your email and we'll send you a code. No password needed.</div>
+        <div class="field"><label for="a-email">Email</label><input id="a-email" type="email" inputmode="email" autocomplete="email" value="${esc(A.email)}" required></div>
+        ${err}<button class="btn" ${busy}>${A.busy ? "Sending…" : "Send me a code"}</button></form>`;
+    return `<div class="signin stack"><section class="hero"><div class="eyebrow">Walt Disney World</div><h1>Our Disney Trip</h1>
+      <div class="who">Plan your trips together: resorts, budget, days in the parks, food and dreams.</div><div class="perf"></div></section>${step}</div>`;
+  }
+  async function authSubmit(form) {
+    const A = view.auth, val = (id) => (document.getElementById(id) || {}).value || "";
+    if (A.busy) return;
+    const input = { email: val("a-email").trim(), code: val("a-code"), name: val("a-name").trim() };
+    A.error = ""; A.busy = true; render();
+    try {
+      if (form === "auth-email") { A.email = input.email; await apiCall("/api/auth/start", "POST", { email: A.email }); A.step = "code"; }
+      if (form === "auth-code") { await apiCall("/api/auth/verify", "POST", { email: A.email, code: input.code }); A.busy = false; return startShared(await apiCall("/api/me")); }
+      if (form === "auth-name") { const a = await apiCall("/api/me", "PUT", { name: input.name }); A.busy = false; return startShared(a); }
+    } catch (e) { A.error = e.message; }
+    A.busy = false; render();
+    const first = document.querySelector("#app form input"); if (first) first.focus();
+  }
+  // Your account: name, friend link, friends, sign out.
+  function showAccount() {
+    const u = account.user, link = `${location.origin}/#friend=${u.link}`;
+    const root = document.getElementById("sheet-root"), keep = root.querySelector(".sheet");
+    root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet pinned" role="dialog" aria-modal="true" aria-label="Your account" style="animation:${keep ? "none" : ""}">
+      <div class="sheet-top"><div class="sheet-head"><div><h2>${esc(u.name)}</h2><div class="muted small">${esc(u.email)}</div></div>
+        <button type="button" class="icon-btn" data-close aria-label="Close">${I.x}</button></div></div>
+      <form class="row" data-form="me-name" style="flex-wrap:nowrap"><div class="field" style="flex:1"><label for="me-name">Your name</label><input id="me-name" value="${esc(u.name)}" maxlength="40" required></div><button class="btn sm" style="align-self:flex-end">Save</button></form>
+      <h3>Friends</h3>
+      <div class="muted small">Send your friend link to someone. When they open it and sign in, you're friends, and you can add each other to a trip under Who's going. Anyone with the link can use it, so make a new one if it gets passed around.</div>
+      <input class="linkbox" readonly value="${esc(link)}" aria-label="Your friend link">
+      <div class="row" style="gap:8px"><button type="button" class="btn sm" data-act="friend-share">Share my friend link</button><button type="button" class="btn quiet sm" data-act="friend-new">New link</button></div>
+      <div>${account.friends.length ? account.friends.map((f) => `<div class="friend-row"><span>${esc(f.name || "Someone")}</span><button type="button" class="btn quiet sm" data-act="friend-del" data-id="${esc(f.id)}">Remove</button></div>`).join("")
+        : `<div class="muted">No friends yet. Share your link to add some!</div>`}</div>
+      <div><button type="button" class="btn ghost" data-act="signout">Sign out</button></div></div></div>`;
+    pinTop(root.querySelector(".sheet"));
+    root.querySelector("[data-close]").onclick = closeSheet;
+  }
+  async function shareFriendLink() {
+    const link = `${location.origin}/#friend=${account.user.link}`;
+    if (navigator.share) { try { await navigator.share({ title: "Our Disney Trip", text: `${account.user.name} wants to plan Disney trips with you.`, url: link }); return; } catch (e) { if (e.name === "AbortError") return; } }
+    try { await navigator.clipboard.writeText(link); toast("Friend link copied."); } catch { toast("Copy the link from the box above."); }
   }
 
   async function resolveNames() {
@@ -872,6 +999,13 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
 
   // ---------- render ----------
   function render() {
+    if (mode === "signin") {
+      document.getElementById("tabs").innerHTML = "";
+      document.getElementById("app").innerHTML = `<div class="topbar"><div class="brand"><img class="logo" src="icons/logo.png" alt="" width="51" height="34"><b>Trip Planner</b></div>
+        <div class="top-right"><button class="theme-btn" data-act="theme" aria-label="${isDark() ? "Switch to light mode" : "Switch to dark mode"}">${isDark() ? I.sun.replace(/14/g, "18") : I.moon}</button></div></div>${signInView()}`;
+      document.title = "Our Disney Trip";
+      return;
+    }
     const order = navOrder(), inMore = !order.slice(0, BAR).includes(view.tab);
     document.getElementById("tabs").innerHTML = order.slice(0, BAR).map((k) => { const [, label, ic] = tabOf(k);
       return `<button data-act="tab" data-k="${k}" ${view.tab === k ? 'aria-current="page"' : ""}>${art(ic)}<span>${label}</span></button>`; }).join("")
@@ -879,7 +1013,8 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     const app = document.getElementById("app");
     const top = `<div class="topbar"><div class="brand"><img class="logo" src="icons/logo.png" alt="" width="51" height="34"><b>Trip Planner</b></div>
       <div class="top-right"><span class="sync ${mode === "shared" ? "" : "local"}">${mode === "starting" ? "Loading…" : mode === "shared" ? "Shared &amp; saved" : "Saved on this device"}</span>
-      <button class="theme-btn" data-act="theme" aria-label="${isDark() ? "Switch to light mode" : "Switch to dark mode"}">${isDark() ? I.sun.replace(/14/g, "18") : I.moon}</button></div></div>`;
+      <button class="theme-btn" data-act="theme" aria-label="${isDark() ? "Switch to light mode" : "Switch to dark mode"}">${isDark() ? I.sun.replace(/14/g, "18") : I.moon}</button>
+      ${account ? `<button class="me-btn" data-act="account" aria-label="Your account">${esc((account.user.name || "?").slice(0, 1).toUpperCase())}</button>` : ""}</div></div>`;
     const body = { home: homeView, resorts: resortsView, dates: datesView, budget: budgetView, dreams: dreamsView, food: foodView, todo: todoView, plan: planView, news: newsView, trips: tripsView }[view.tab]();
     document.title = tripDoc().name;
     // Keep a half-typed pro/con or budget amount when a live update re-renders the page.
@@ -1552,7 +1687,7 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       const next = { ...settingsOf(id), ...v };
       if (mode === "local") { const p = phys("trip", id); local[p] = { ...(local[p] || {}), settings: next }; saveLocal(); render(); }
       else { otherSettings[id] = next; render(); db.collection(phys("trip", id)).doc("settings").set(next).catch(writeFailed); }
-    }, id !== tripId && id !== "main" ? () => deleteTrip(id) : null);
+    }, id !== tripId && id !== "main" && (!account || tripDoc(id).owner === me) ? () => deleteTrip(id) : null);
   }
 
   // ---------- My Trips: every trip, which one is open, and who's going ----------
@@ -1587,13 +1722,10 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
       setTimeout(() => editPeople(id), 0);
     });
   }
+  // On the website the Worker deletes everything in the trip along with it.
   function deleteTrip(id) {
     remove("trips", id);
     if (mode === "local") { TRIP_COLLS.forEach((c) => delete local[phys(c, id)]); saveLocal(); }
-    else TRIP_COLLS.forEach((c) => {
-      let ids = []; const un = listen(c, id, (m) => (ids = Object.keys(m))); if (typeof un === "function") un();
-      ids.forEach((x) => db.collection(phys(c, id)).doc(x).delete().catch(writeFailed));
-    });
     toast("Trip deleted.");
   }
   // Who's going: a name and a relationship, one row each. Nothing saves until Done.
@@ -1606,22 +1738,29 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     root.innerHTML = `<div class="scrim" data-act="close-sheet"><div class="sheet pinned" role="dialog" aria-modal="true" aria-label="Who's going" style="animation:${keep ? "none" : ""}">
       <div class="sheet-top"><div class="sheet-head"><div><h2>Who's going</h2><div class="muted small">${esc(doc.name)}</div></div><div class="row" style="gap:8px;flex-wrap:nowrap">
         <button type="button" class="btn ghost sm" data-cancel>Cancel</button><button type="button" class="btn sm" data-act="people-save">Done</button></div></div></div>
-      <div class="muted small">Add each person and how they're related to you.</div>
-      <div class="people">${peopleDraft.rows.map((p, i) => `<div class="person">
+      <div class="muted small">Add each person and how they're related to you.${account ? " Link someone to their account (friends only) and they can see and edit this trip too." : ""}</div>
+      <div class="people">${peopleDraft.rows.map((p, i) => `<div class="person ${account ? "linkable" : ""}">
         <input data-p="name" data-i="${i}" value="${esc(p.name)}" placeholder="Name" aria-label="Name" autocomplete="off">
         <input data-p="rel" data-i="${i}" value="${esc(p.rel || "")}" placeholder="Relationship" aria-label="Relationship" list="rel-list" autocomplete="off">
+        ${account ? `<select data-p="uid" data-i="${i}" aria-label="Account">${accountOptions(p.uid).map(([v, l]) => `<option value="${esc(v)}" ${v === (p.uid || "") ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>` : ""}
         <button type="button" class="icon-btn" data-act="person-del" data-n="${i}" aria-label="Remove ${esc(p.name || "this person")}">${I.x}</button></div>`).join("")}</div>
       <datalist id="rel-list">${RELATIONS.map((r) => `<option value="${r}"></option>`).join("")}</datalist>
       <div><button type="button" class="btn ghost sm" data-act="person-add">${I.plus} Add someone</button></div></div></div>`;
     pinTop(root.querySelector(".sheet"));
     root.querySelector("[data-cancel]").onclick = closeSheet;
   }
+  // Who a Who's going row can be linked to: you, your friends, or whoever it's linked to already.
+  function accountOptions(cur) {
+    const opts = [["", "No account"], [me, `${account.user.name} (you)`], ...account.friends.map((f) => [f.id, f.name || "Someone"])];
+    if (cur && !opts.some(([v]) => v === cur)) opts.push([cur, account.people[cur] || "Someone"]);
+    return opts;
+  }
   function readPeople() {
     document.querySelectorAll("#sheet-root [data-p]").forEach((el) => (peopleDraft.rows[el.dataset.i][el.dataset.p] = el.value.trim()));
     return peopleDraft.rows;
   }
   function savePeople() {
-    const people = readPeople().filter((p) => p.name).map((p) => ({ name: p.name, rel: p.rel || "" }));
+    const people = readPeople().filter((p) => p.name).map((p) => ({ name: p.name, rel: p.rel || "", ...(p.uid ? { uid: p.uid } : {}) }));
     put("trips", peopleDraft.id, { ...tripDoc(peopleDraft.id), people });
     closeSheet();
   }
@@ -1686,6 +1825,16 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "jump") { const c = document.getElementById("day-" + el.dataset.k.slice(1)); if (c) c.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     if (act === "filter") { view.filter = el.dataset.k; render(); return; }
     if (act === "theme") { setTheme(isDark() ? "light" : "dark"); return; }
+    if (act === "auth-back") { view.auth = { step: "email", email: view.auth.email, error: "", busy: false }; render(); return; }
+    if (act === "auth-resend") { apiCall("/api/auth/start", "POST", { email: view.auth.email }).then(() => toast("New code sent."), (err) => toast(err.message)); return; }
+    if (act === "account") { showAccount(); return; }
+    if (act === "friend-share") { shareFriendLink(); return; }
+    if (act === "friend-new") { apiCall("/api/friends/link", "POST").then((a) => { setAccount(a); showAccount(); toast("New link made. The old one won't work anymore."); }, (err) => toast(err.message)); return; }
+    if (act === "friend-del") {
+      if (!el.dataset.armed) { el.dataset.armed = "1"; el.textContent = "Tap again to remove"; el.style.color = "var(--bad)"; return; }
+      apiCall(`/api/friends/${encodeURIComponent(id)}`, "DELETE").then((a) => { setAccount(a); showAccount(); }, (err) => toast(err.message)); return;
+    }
+    if (act === "signout") { apiCall("/api/auth/signout", "POST").finally(() => location.reload()); return; }
     if (act === "cmp-toggle") {
       // Up to three at a time; adding a fourth drops the oldest.
       const ids = cmpIds(rankedOptions()), i = ids.indexOf(id);
@@ -1738,10 +1887,22 @@ button.score { cursor: pointer; padding: 0; font-family: var(--display); font-we
     if (act === "days-save") return saveDayOrder();
     if (act === "add-slot" || act === "edit-slot") return editSlot(el.dataset.k, id);
   });
+  document.addEventListener("submit", (e) => {
+    const form = e.target.dataset && e.target.dataset.form; if (!form) return;
+    e.preventDefault();
+    if (form.startsWith("auth-")) return authSubmit(form);
+    if (form === "me-name") apiCall("/api/me", "PUT", { name: document.getElementById("me-name").value.trim() })
+      .then((a) => { setAccount(a); showAccount(); toast("Saved."); }, (err) => toast(err.message));
+  });
   document.addEventListener("change", (e) => {
     const el = e.target;
     if (el.id === "sort") { view.sort = el.value; render(); return; }
     if (el.dataset.item && canWrite) { setItemAmount(el.dataset.item, el.value.trim()); return; }
+    // Linking a blank Who's going row to a friend fills in their name.
+    if (el.dataset.p === "uid" && el.value) {
+      const name = document.querySelector(`#sheet-root [data-p="name"][data-i="${el.dataset.i}"]`);
+      if (name && !name.value.trim()) name.value = el.value === me ? account.user.name : (account.friends.find((f) => f.id === el.value) || {}).name || "";
+    }
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeSheet();

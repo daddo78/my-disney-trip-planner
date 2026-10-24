@@ -1,22 +1,43 @@
-// Our Disney Trip on dtp.ondorilabo.com: serves index.html and keeps the shared plan in D1.
+// Our Disney Trip on dtp.ondorilabo.com: serves index.html and keeps everyone's trips in D1.
 //
-//   GET    /api/docs?since=<n>     every doc changed after cursor n (0 = everything), plus the new cursor
-//   PUT    /api/docs/<coll>/<id>   save a doc (body: the doc's JSON)
-//   DELETE /api/docs/<coll>/<id>   delete a doc (kept as a tombstone so other phones see the delete)
-//   daily cron                     pulls Walt Disney World news from RSS into news/<id> and ref/news
+// Accounts (worker/migrations/0002_accounts.sql): sign in with a 6-digit code sent by email (Resend), stay signed in
+// with an HttpOnly session cookie. Friends are made with a personal friend link. A trip is seen and edited by its
+// members: whoever created it, plus the accounts linked on its Who's going list.
 //
-// No sign-in, by choice: anyone with the link can read and edit.
+//   POST   /api/auth/start {email}         email a sign-in code
+//   POST   /api/auth/verify {email, code}  check it, make the account if it's new, set the session cookie
+//   POST   /api/auth/signout
+//   GET    /api/me                         me, my friends, names of everyone on my trips, my trip ids
+//   PUT    /api/me {name}
+//   POST   /api/friends/link               a new friend link (the old one stops working)
+//   POST   /api/friends/accept {link}      become friends with the link's owner
+//   DELETE /api/friends/<id>
+//   GET    /api/docs?since=<n>             docs I can see changed after cursor n (0 = everything), the new cursor, my trip ids
+//   PUT    /api/docs/<coll>/<id>           save a doc in one of my trips
+//   DELETE /api/docs/<coll>/<id>           delete it (kept as a tombstone so other phones see the delete)
+//   daily cron                             pulls Walt Disney World news from RSS into news/<id> and ref/news
+//
+// Writes must send the header "x-dtp: 1"; a custom header can't be sent cross-site without CORS, which this never allows.
 // `updated` is a strictly increasing counter, so a phone that asks "what changed since n" never misses a write.
+// Without a RESEND_API_KEY secret (local `wrangler dev`), sign-in codes are written to the log instead of emailed.
 
-const COLLS = new Set(["trip", "resorts", "budget", "wishes", "food", "todos", "dvc", "ref", "proscons", "news", "days", "trips"]);
-// A trip after the first keeps its own copy of these as "<coll>@<trip id>" (see TRIP_COLLS in index.html).
-const TRIP_COLL = /^(trip|resorts|budget|wishes|food|todos|proscons|days)@[A-Za-z0-9]{1,24}$/;
+// The DVC charts, weather and news are shared by everyone and written only by the Worker or by hand.
+const SHARED = new Set(["dvc", "ref", "news"]);
+// Each trip's own collections. The first trip ("main") uses the plain names; later ones "<coll>@<trip id>".
+const TRIP_BASE = new Set(["trip", "resorts", "budget", "wishes", "food", "todos", "proscons", "days"]);
+const TRIP_COLL = /^(trip|resorts|budget|wishes|food|todos|proscons|days)@([A-Za-z0-9]{1,24})$/;
+const TRIP_ID = /^[A-Za-z0-9]{1,24}$/;
 const ID = /^[A-Za-z0-9_\-.~:@+]{1,200}$/;
+const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 const MAX_BODY = 256 * 1024;
+const COOKIE = "dtp_session";
+const SESSION_DAYS = 365, CODE_MINUTES = 10, CODE_TRIES = 5, RESEND_WAIT = 30e3;
+const FROM = "Our Disney Trip <trips@ondorilabo.com>";
 
-const json = (body, status = 200) => new Response(JSON.stringify(body), {
-  status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), {
+  status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers },
 });
+const oops = (error, status = 400) => json({ error }, status);
 
 async function save(db, coll, id, data, deleted = 0) {
   await db.prepare(
@@ -26,28 +47,194 @@ async function save(db, coll, id, data, deleted = 0) {
   ).bind(coll, id, data, deleted).run();
 }
 
-async function api(request, env, url) {
+// Which trip a doc belongs to (null = shared or unknown).
+function tripOf(coll, id) {
+  if (coll === "trips") return TRIP_ID.test(id) ? id : null;
+  const m = coll.match(TRIP_COLL); if (m) return m[2];
+  return TRIP_BASE.has(coll) ? "main" : null;
+}
+
+// ---------- accounts ----------
+const hex = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((x) => x.toString(16).padStart(2, "0")).join("");
+async function sha(s) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
+function cookieOf(request) { const m = (request.headers.get("cookie") || "").match(new RegExp(`(?:^|;\\s*)${COOKIE}=([a-f0-9]{64})`)); return m ? m[1] : null; }
+const setCookie = (token, days) => `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${Math.round(days * 86400)}`;
+
+async function whoIs(request, db) {
+  const token = cookieOf(request); if (!token) return null;
+  return db.prepare("SELECT u.id, u.email, u.name, u.link FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.hash = ?1 AND s.expires > ?2")
+    .bind(await sha(token), Date.now()).first();
+}
+async function body(request) { try { const b = await request.json(); return b && typeof b === "object" ? b : {}; } catch { return {}; } }
+
+async function sendCode(env, email, code) {
+  const text = `Your Our Disney Trip sign-in code is ${code}\n\nIt works for ${CODE_MINUTES} minutes. If you didn't ask for it, you can ignore this email.`;
+  if (!env.RESEND_API_KEY) { console.log(`sign-in code for ${email}: ${code}`); return; }
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      from: FROM, to: [email], subject: `${code} is your Our Disney Trip code`, text,
+      html: `<div style="font-family:system-ui,sans-serif;font-size:16px;color:#0D1C2E"><p>Your Our Disney Trip sign-in code is</p>
+        <p style="font-size:32px;font-weight:800;letter-spacing:6px;margin:12px 0">${code}</p>
+        <p style="color:#555">It works for ${CODE_MINUTES} minutes. If you didn't ask for it, you can ignore this email.</p></div>`,
+    }),
+  });
+  if (!r.ok) throw new Error(`Resend ${r.status}: ${await r.text()}`);
+}
+
+async function auth(request, env, path) {
+  const db = env.DB, b = await body(request);
+  if (path === "/api/auth/start") {
+    const email = String(b.email || "").trim().toLowerCase();
+    if (!EMAIL.test(email)) return oops("That doesn't look like an email address.");
+    const prev = await db.prepare("SELECT sent FROM codes WHERE email = ?1").bind(email).first();
+    if (prev && Date.now() - prev.sent < RESEND_WAIT) return oops("A code is on its way. Give it 30 seconds before asking for another.", 429);
+    const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1e6).padStart(6, "0");
+    await db.prepare("INSERT OR REPLACE INTO codes (email, hash, expires, tries, sent) VALUES (?1, ?2, ?3, 0, ?4)")
+      .bind(email, await sha(`${email}:${code}`), Date.now() + CODE_MINUTES * 6e4, Date.now()).run();
+    try { await sendCode(env, email, code); } catch (e) { console.error(e); return oops("The code email didn't send. Try again in a minute.", 502); }
+    return json({ ok: true });
+  }
+  if (path === "/api/auth/verify") {
+    const email = String(b.email || "").trim().toLowerCase(), code = String(b.code || "").replace(/\D/g, "");
+    const row = await db.prepare("SELECT hash, expires, tries FROM codes WHERE email = ?1").bind(email).first();
+    if (!row || row.expires < Date.now() || row.tries >= CODE_TRIES) return oops("That code has expired. Send a new one.");
+    if ((await sha(`${email}:${code}`)) !== row.hash) {
+      await db.prepare("UPDATE codes SET tries = tries + 1 WHERE email = ?1").bind(email).run();
+      return oops(row.tries + 1 >= CODE_TRIES ? "Too many tries. Send a new code." : "That code doesn't match. Check the email and try again.");
+    }
+    await db.prepare("DELETE FROM codes WHERE email = ?1").bind(email).run();
+    let user = await db.prepare("SELECT id FROM users WHERE email = ?1").bind(email).first();
+    if (!user) {
+      user = { id: hex(8) };
+      await db.prepare("INSERT INTO users (id, email, name, link, created) VALUES (?1, ?2, '', ?3, ?4)").bind(user.id, email, hex(12), new Date().toISOString()).run();
+    }
+    const token = hex(32);
+    await db.prepare("INSERT INTO sessions (hash, user_id, expires) VALUES (?1, ?2, ?3)").bind(await sha(token), user.id, Date.now() + SESSION_DAYS * 864e5).run();
+    return json({ ok: true }, 200, { "set-cookie": setCookie(token, SESSION_DAYS) });
+  }
+  if (path === "/api/auth/signout") {
+    const token = cookieOf(request);
+    if (token) await db.prepare("DELETE FROM sessions WHERE hash = ?1").bind(await sha(token)).run();
+    return json({ ok: true }, 200, { "set-cookie": setCookie("", 0) });
+  }
+  return oops("not found", 404);
+}
+
+const myTrips = async (db, uid) => (await db.prepare("SELECT trip FROM members WHERE user_id = ?1").bind(uid).all()).results.map((r) => r.trip);
+const friendIds = async (db, uid) => new Set((await db.prepare("SELECT b FROM friends WHERE a = ?1").bind(uid).all()).results.map((r) => r.b));
+
+async function meInfo(db, user) {
+  const friends = (await db.prepare("SELECT u.id, u.name FROM friends f JOIN users u ON u.id = f.b WHERE f.a = ?1 ORDER BY u.name").bind(user.id).all()).results;
+  // Names for hearts, pros and cons, and Who's going: everyone on my trips, plus my friends.
+  const others = (await db.prepare(`SELECT DISTINCT u.id, u.name FROM members m JOIN members o ON o.trip = m.trip JOIN users u ON u.id = o.user_id WHERE m.user_id = ?1`).bind(user.id).all()).results;
+  const people = {}; [...others, ...friends].forEach((p) => (people[p.id] = p.name || "Someone"));
+  return { user: { id: user.id, email: user.email, name: user.name, link: user.link }, friends, people, trips: await myTrips(db, user.id) };
+}
+
+async function account(request, env, path, user) {
+  const db = env.DB;
+  if (path === "/api/me" && request.method === "GET") return json(await meInfo(db, user));
+  if (path === "/api/me" && request.method === "PUT") {
+    const name = String((await body(request)).name || "").trim().replace(/\s+/g, " ");
+    if (!name || name.length > 40) return oops("Pick a name up to 40 letters long.");
+    await db.prepare("UPDATE users SET name = ?1 WHERE id = ?2").bind(name, user.id).run();
+    return json(await meInfo(db, { ...user, name }));
+  }
+  if (path === "/api/friends/link" && request.method === "POST") {
+    const link = hex(12);
+    await db.prepare("UPDATE users SET link = ?1 WHERE id = ?2").bind(link, user.id).run();
+    return json(await meInfo(db, { ...user, link }));
+  }
+  if (path === "/api/friends/accept" && request.method === "POST") {
+    const link = String((await body(request)).link || "");
+    const them = /^[a-f0-9]{24}$/.test(link) && await db.prepare("SELECT id, name FROM users WHERE link = ?1").bind(link).first();
+    if (!them) return oops("That friend link doesn't work anymore. Ask for a new one.", 404);
+    if (them.id === user.id) return oops("That's your own friend link. Send it to a friend!");
+    await db.batch([
+      db.prepare("INSERT OR IGNORE INTO friends (a, b) VALUES (?1, ?2)").bind(user.id, them.id),
+      db.prepare("INSERT OR IGNORE INTO friends (a, b) VALUES (?1, ?2)").bind(them.id, user.id),
+    ]);
+    return json({ friend: them, ...(await meInfo(db, user)) });
+  }
+  const f = path.match(/^\/api\/friends\/([a-z0-9]{1,40})$/);
+  if (f && request.method === "DELETE") {
+    await db.prepare("DELETE FROM friends WHERE (a = ?1 AND b = ?2) OR (a = ?2 AND b = ?1)").bind(user.id, f[1]).run();
+    return json(await meInfo(db, user));
+  }
+  return oops("not found", 404);
+}
+
+// ---------- the trip docs ----------
+async function docs(request, env, url, user) {
   const db = env.DB;
   if (url.pathname === "/api/docs" && request.method === "GET") {
-    const since = Number(url.searchParams.get("since")) || 0;
+    const since = Number(url.searchParams.get("since")) || 0, trips = await myTrips(db, user.id), mine = new Set(trips);
     const { results } = await db.prepare("SELECT coll, id, data, deleted, updated FROM docs WHERE updated > ?1 ORDER BY updated").bind(since).all();
     const cursor = results.length ? results[results.length - 1].updated : since;
-    return json({ cursor, docs: results.map((r) => ({ coll: r.coll, id: r.id, deleted: !!r.deleted, data: r.deleted ? null : JSON.parse(r.data) })) });
+    const seen = results.filter((r) => SHARED.has(r.coll) || mine.has(tripOf(r.coll, r.id)));
+    return json({ cursor, trips, docs: seen.map((r) => ({ coll: r.coll, id: r.id, deleted: !!r.deleted, data: r.deleted ? null : JSON.parse(r.data) })) });
   }
   const m = url.pathname.match(/^\/api\/docs\/([^/]+)\/([^/]+)$/);
-  if (!m) return json({ error: "not found" }, 404);
-  const coll = decodeURIComponent(m[1]), id = decodeURIComponent(m[2]);
-  if (!(COLLS.has(coll) || TRIP_COLL.test(coll)) || !ID.test(id)) return json({ error: "bad collection or id" }, 400);
+  if (!m) return oops("not found", 404);
+  const coll = decodeURIComponent(m[1]), id = decodeURIComponent(m[2]), trip = tripOf(coll, id);
+  if (!trip || !ID.test(id)) return oops("bad collection or id");
+  // A trip nobody has yet belongs to whoever writes to it first; otherwise only its members can touch it.
+  const members = (await db.prepare("SELECT user_id, owner FROM members WHERE trip = ?1").bind(trip).all()).results;
+  const owner = (members.find((x) => x.owner) || {}).user_id || (members.length ? null : user.id);
+  if (!members.length) await db.prepare("INSERT OR IGNORE INTO members (trip, user_id, owner) VALUES (?1, ?2, 1)").bind(trip, user.id).run();
+  else if (!members.some((x) => x.user_id === user.id)) return oops("That trip isn't shared with you.", 403);
+
   if (request.method === "PUT") {
     const text = await request.text();
-    if (text.length > MAX_BODY) return json({ error: "too big" }, 413);
-    let data; try { data = JSON.parse(text); } catch { return json({ error: "not JSON" }, 400); }
-    if (!data || typeof data !== "object" || Array.isArray(data)) return json({ error: "doc must be an object" }, 400);
+    if (text.length > MAX_BODY) return oops("too big", 413);
+    let data; try { data = JSON.parse(text); } catch { return oops("not JSON"); }
+    if (!data || typeof data !== "object" || Array.isArray(data)) return oops("doc must be an object");
+    if (coll === "trips") {
+      // Who's going decides who else can open the trip. People can only be linked to your friends
+      // (or to accounts already on the trip); other links are dropped, keeping the name.
+      const prev = await db.prepare("SELECT data FROM docs WHERE coll = 'trips' AND id = ?1 AND deleted = 0").bind(id).first();
+      const before = new Set(((prev && JSON.parse(prev.data).people) || []).map((p) => p && p.uid).filter(Boolean));
+      const friends = await friendIds(db, user.id);
+      data.people = (Array.isArray(data.people) ? data.people : []).filter((p) => p && typeof p === "object").map((p) => {
+        const ok = p.uid && (p.uid === user.id || before.has(p.uid) || friends.has(p.uid));
+        const { uid, ...rest } = p; return ok ? { ...rest, uid } : rest;
+      });
+      data.owner = owner;
+      const keep = new Set([owner, ...data.people.map((p) => p.uid).filter(Boolean)]);
+      await db.batch([
+        db.prepare("DELETE FROM members WHERE trip = ?1 AND owner = 0").bind(trip),
+        ...[...keep].filter((u) => u !== owner).map((u) => db.prepare("INSERT OR IGNORE INTO members (trip, user_id, owner) VALUES (?1, ?2, 0)").bind(trip, u)),
+      ]);
+    }
     await save(db, coll, id, JSON.stringify(data));
     return json({ ok: true });
   }
-  if (request.method === "DELETE") { await save(db, coll, id, "null", 1); return json({ ok: true }); }
-  return json({ error: "method not allowed" }, 405);
+  if (request.method === "DELETE") {
+    if (coll !== "trips") { await save(db, coll, id, "null", 1); return json({ ok: true }); }
+    // Deleting a trip takes everything in it, and only its creator can do that.
+    if (owner !== user.id) return oops("Only the person who started this trip can delete it.", 403);
+    const like = trip === "main" ? null : `%@${trip}`;
+    const rows = like ? (await db.prepare("SELECT coll, id FROM docs WHERE deleted = 0 AND coll LIKE ?1").bind(like).all()).results
+      : (await db.prepare(`SELECT coll, id FROM docs WHERE deleted = 0 AND coll IN (${[...TRIP_BASE].map((c) => `'${c}'`).join(",")})`).all()).results;
+    for (const r of rows) if (tripOf(r.coll, r.id) === trip) await save(db, r.coll, r.id, "null", 1);
+    await save(db, coll, id, "null", 1);
+    await db.prepare("DELETE FROM members WHERE trip = ?1").bind(trip).run();
+    return json({ ok: true });
+  }
+  return oops("method not allowed", 405);
+}
+
+async function api(request, env, url) {
+  const path = url.pathname;
+  if (request.method !== "GET" && request.headers.get("x-dtp") !== "1") return oops("missing x-dtp header", 403);
+  if (path.startsWith("/api/auth/") && request.method === "POST") return auth(request, env, path);
+  const user = await whoIs(request, env.DB);
+  if (!user) return oops("signed out", 401);
+  if (path === "/api/me" || path.startsWith("/api/friends")) return account(request, env, path, user);
+  if (path === "/api/docs" || path.startsWith("/api/docs/")) return docs(request, env, url, user);
+  return oops("not found", 404);
 }
 
 // ---------- daily news ----------
